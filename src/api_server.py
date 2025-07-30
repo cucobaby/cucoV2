@@ -60,22 +60,6 @@ class QuestionResponse(BaseModel):
     subject: str
     processing_time: float
 
-# Initialize FastAPI app
-app = FastAPI(
-    title="Canvas AI Assistant API",
-    description="AI-powered content analysis and question answering for educational materials",
-    version="1.0.0"
-)
-
-# Configure CORS for browser extension
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your extension's origin
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Global assistant instance
 assistant = None
 
@@ -88,9 +72,12 @@ def get_assistant():
         assistant = CoreAssistant()
     return assistant
 
-@app.on_startup
-async def startup_event():
-    """Initialize services on startup"""
+# Modern FastAPI startup/shutdown using lifespan
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     print("🚀 Starting Canvas AI Assistant API...")
     print("📊 Initializing ChromaDB and AI services...")
     
@@ -100,6 +87,28 @@ async def startup_event():
         print("✅ Core Assistant initialized")
     except Exception as e:
         print(f"⚠️ Assistant initialization warning: {e}")
+    
+    yield  # This separates startup from shutdown
+    
+    # Shutdown (if needed)
+    print("👋 Shutting down Canvas AI Assistant API...")
+
+# Initialize FastAPI app with lifespan
+app = FastAPI(
+    title="Canvas AI Assistant",
+    description="AI-powered content analysis and question answering for educational content",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure appropriately for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def root():
