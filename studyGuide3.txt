@@ -1,0 +1,23 @@
+Photosynthesis and Cellular Respiration
+
+This lesson covers the fundamental processes of energy conversion in living organisms. Photosynthesis is the process by which plants, algae, and some bacteria convert light energy into chemical energy stored in glucose. This process occurs in two main stages: the light-dependent reactions and the Calvin cycle.
+
+The light-dependent reactions occur in the thylakoid membranes of chloroplasts. Here, chlorophyll absorbs light energy and uses it to split water molecules, releasing oxygen as a byproduct. The energy is captured in ATP and NADPH molecules.
+
+The Calvin cycle takes place in the stroma of chloroplasts. This cycle uses CO2 from the atmosphere, along with ATP and NADPH from the light reactions, to produce glucose through a series of enzyme-catalyzed reactions.
+
+Cellular respiration is essentially the reverse of photosynthesis. It breaks down glucose to release energy in the form of ATP. This process occurs in three main stages: glycolysis, the citric acid cycle, and the electron transport chain.
+
+Glycolysis occurs in the cytoplasm and partially breaks down glucose into pyruvate, producing a small amount of ATP and NADH. The citric acid cycle occurs in the mitochondrial matrix and completes the breakdown of glucose derivatives, producing more NADH, FADH2, and ATP.
+
+The electron transport chain is located in the inner mitochondrial membrane. It uses the NADH and FADH2 produced in earlier stages to generate a large amount of ATP through oxidative phosphorylation.
+
+Key vocabulary:
+- ATP: Adenosine triphosphate, the energy currency of cells
+- Chloroplast: Organelle where photosynthesis occurs in plant cells
+- Mitochondria: Organelle where cellular respiration occurs
+- Glucose: A simple sugar that serves as a primary energy source
+- NADH: An electron carrier molecule
+- Enzyme: Proteins that catalyze biochemical reactions
+
+The relationship between photosynthesis and cellular respiration creates a cycle of energy and matter in ecosystems. Plants use photosynthesis to convert solar energy into chemical energy, while both plants and animals use cellular respiration to extract that energy for cellular processes.
