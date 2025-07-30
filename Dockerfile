@@ -31,4 +31,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 # Run the application (Railway will set PORT environment variable)
-CMD uvicorn src.minimal_api:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD uvicorn src.api_server:app --host 0.0.0.0 --port ${PORT:-8000}
