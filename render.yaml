@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: cucov2-api
-    env: python
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn src.simple_api:app --host 0.0.0.0 --port $PORT
