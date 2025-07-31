@@ -218,7 +218,18 @@ async def ingest_content(request: ContentIngestRequest):
             chunk_id = f"canvas_{abs(hash(request.title))}_{int(start_time.timestamp())}"
             print(f"🆔 Generated chunk ID: {chunk_id}")
             
-            # Enhanced content processing with ContentAnalyzer
+            # Start with basic metadata that we know will work
+            enhanced_metadata = {
+                "title": str(request.title)[:500],
+                "content_type": str(request.content_type or "unknown")[:100],
+                "course_id": str(request.course_id or "unknown")[:100], 
+                "source_url": str(request.url or "")[:500],
+                "source": str(request.source)[:100],
+                "timestamp": str(request.timestamp or datetime.now().isoformat()),
+                "ingested_at": datetime.now().isoformat()
+            }
+            
+            # Try to enhance with ContentAnalyzer, but don't let it break storage
             try:
                 print("🔍 Running content analysis for enhanced storage...")
                 
@@ -241,37 +252,20 @@ async def ingest_content(request: ContentIngestRequest):
                 
                 print(f"📊 Analysis complete: {content_analysis.subject_area} - {len(content_analysis.main_topics)} topics")
                 
-                # Enhanced metadata with analysis results
-                enhanced_metadata = {
-                    "title": str(request.title)[:500],
-                    "content_type": str(request.content_type or content_analysis.content_type)[:100],
-                    "course_id": str(request.course_id or "unknown")[:100], 
-                    "source_url": str(request.url or "")[:500],
-                    "source": str(request.source)[:100],
-                    "timestamp": str(request.timestamp or datetime.now().isoformat()),
-                    "ingested_at": datetime.now().isoformat(),
-                    # Enhanced fields from content analysis
-                    "subject_area": content_analysis.subject_area,
-                    "difficulty_level": content_analysis.estimated_difficulty,
-                    "main_topics": [topic.name for topic in content_analysis.main_topics[:5]],  # Top 5 topics
-                    "key_concepts": list(content_analysis.key_terms.keys())[:10],  # Top 10 key terms
-                    "learning_objectives": content_analysis.learning_objectives[:3] if content_analysis.learning_objectives else []
-                }
+                # Add enhanced fields from content analysis
+                enhanced_metadata.update({
+                    "subject_area": str(content_analysis.subject_area)[:100],
+                    "difficulty_level": str(content_analysis.estimated_difficulty)[:50],
+                    "main_topics": str([topic.name for topic in content_analysis.main_topics[:5]])[:1000],  # Top 5 topics as string
+                    "key_concepts": str(list(content_analysis.key_terms.keys())[:10])[:1000],  # Top 10 key terms as string
+                    "learning_objectives": str(content_analysis.learning_objectives[:3] if content_analysis.learning_objectives else [])[:1000]
+                })
                 
-                print(f"📝 Enhanced metadata with {len(enhanced_metadata.get('main_topics', []))} topics and {len(enhanced_metadata.get('key_concepts', []))} key concepts")
+                print(f"📝 Enhanced metadata with content analysis successful")
                 
             except Exception as analysis_error:
-                print(f"⚠️ Content analysis failed, using basic metadata: {analysis_error}")
-                # Fallback to basic metadata
-                enhanced_metadata = {
-                    "title": str(request.title)[:500],
-                    "content_type": str(request.content_type or "unknown")[:100],
-                    "course_id": str(request.course_id or "unknown")[:100], 
-                    "source_url": str(request.url or "")[:500],
-                    "source": str(request.source)[:100],
-                    "timestamp": str(request.timestamp or datetime.now().isoformat()),
-                    "ingested_at": datetime.now().isoformat()
-                }
+                print(f"⚠️ Content analysis failed, proceeding with basic metadata: {analysis_error}")
+                # Continue with basic metadata - don't let analysis failure break storage
             
             print(f"📝 Enhanced metadata prepared: {list(enhanced_metadata.keys())}")
             print(f"📄 Content length: {len(request.content)} chars")
