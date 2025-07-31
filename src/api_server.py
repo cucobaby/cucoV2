@@ -93,47 +93,83 @@ async def ingest_content(request: ContentIngestRequest):
     try:
         print(f"📥 Ingesting content: {request.title[:50]}...")
         
-        # Try ChromaDB storage
+        # Try ChromaDB storage with enhanced error handling
         try:
+            print("🔄 Attempting ChromaDB import...")
             import chromadb
+            print("✅ ChromaDB imported successfully")
             
-            # Initialize ChromaDB
+            # Initialize ChromaDB with detailed logging
             chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
             print(f"📁 ChromaDB path: {chroma_path}")
             
+            print("🔄 Creating ChromaDB client...")
             client = chromadb.PersistentClient(path=chroma_path)
+            print("✅ ChromaDB client created")
             
-            # Get or create collection
+            # Get or create collection with better error handling
+            collection_name = "canvas_content"
+            collection = None
+            
             try:
-                collection = client.get_collection("canvas_content")
-                print("✅ Using existing canvas_content collection")
-            except:
-                print("📦 Creating new canvas_content collection...")
-                collection = client.create_collection(
-                    name="canvas_content",
-                    metadata={"description": "Canvas course materials"}
-                )
+                print(f"🔍 Looking for existing collection '{collection_name}'...")
+                collection = client.get_collection(collection_name)
+                print(f"✅ Using existing '{collection_name}' collection")
+            except Exception as get_error:
+                print(f"📦 Collection doesn't exist, creating new one. Error: {get_error}")
+                try:
+                    collection = client.create_collection(
+                        name=collection_name,
+                        metadata={"description": "Canvas course materials via Chrome extension"}
+                    )
+                    print(f"✅ Created new '{collection_name}' collection")
+                except Exception as create_error:
+                    print(f"❌ Failed to create collection: {create_error}")
+                    raise create_error
+            
+            if not collection:
+                raise Exception("Failed to get or create collection")
             
             # Generate unique ID
             chunk_id = f"canvas_{abs(hash(request.title))}_{int(start_time.timestamp())}"
+            print(f"🆔 Generated chunk ID: {chunk_id}")
             
-            # Prepare metadata
+            # Prepare metadata with validation
             metadata = {
-                "title": request.title,
-                "content_type": request.content_type or "unknown",
-                "course_id": request.course_id or "unknown", 
-                "source_url": request.url or "",
-                "source": request.source,
-                "timestamp": request.timestamp or datetime.now().isoformat(),
+                "title": str(request.title)[:500],  # Limit title length
+                "content_type": str(request.content_type or "unknown")[:100],
+                "course_id": str(request.course_id or "unknown")[:100], 
+                "source_url": str(request.url or "")[:500],
+                "source": str(request.source)[:100],
+                "timestamp": str(request.timestamp or datetime.now().isoformat()),
                 "ingested_at": datetime.now().isoformat()
             }
             
-            # Store in ChromaDB
-            collection.add(
-                documents=[request.content],
-                metadatas=[metadata],
-                ids=[chunk_id]
-            )
+            print(f"📝 Metadata prepared: {list(metadata.keys())}")
+            print(f"📄 Content length: {len(request.content)} chars")
+            
+            # Store in ChromaDB with validation
+            try:
+                print("🔄 Adding document to collection...")
+                collection.add(
+                    documents=[str(request.content)],
+                    metadatas=[metadata],
+                    ids=[chunk_id]
+                )
+                print(f"✅ Document added successfully")
+                
+                # Verify storage by counting
+                try:
+                    count = collection.count()
+                    print(f"📊 Collection now has {count} documents")
+                except:
+                    print("⚠️ Could not verify document count")
+                
+            except Exception as add_error:
+                print(f"❌ Failed to add document: {add_error}")
+                print(f"   Document length: {len(request.content)}")
+                print(f"   Metadata keys: {list(metadata.keys())}")
+                raise add_error
             
             print(f"✅ Content stored in ChromaDB with ID: {chunk_id}")
             
@@ -191,24 +227,52 @@ async def ask_question(request: QuestionRequest):
                 detail="Question too short (minimum 5 characters)"
             )
         
-        # Try to find relevant content in ChromaDB
+        # Try to find relevant content in ChromaDB with enhanced debugging
         try:
+            print("🔄 Importing ChromaDB for question answering...")
             import chromadb
             
             chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
+            print(f"📁 ChromaDB path: {chroma_path}")
+            
+            print("🔄 Creating ChromaDB client...")
             client = chromadb.PersistentClient(path=chroma_path)
             
+            print("🔍 Getting canvas_content collection...")
             collection = client.get_collection("canvas_content")
             
+            # Check collection status
+            try:
+                count = collection.count()
+                print(f"📊 Collection has {count} documents")
+                
+                if count == 0:
+                    print("⚠️ No content found in collection")
+                    return QuestionResponse(
+                        answer="The knowledge base is empty. Please add some content first using the Chrome extension 🤖 buttons.",
+                        confidence=0.0,
+                        sources=[],
+                        response_time=(datetime.now() - start_time).total_seconds()
+                    )
+                    
+            except Exception as count_error:
+                print(f"⚠️ Could not count documents: {count_error}")
+            
             # Search for relevant content
+            print(f"🔍 Searching for: '{request.question[:100]}'...")
             results = collection.query(
                 query_texts=[request.question],
-                n_results=3
+                n_results=min(3, count) if 'count' in locals() else 3
             )
+            
+            print(f"📋 Search results: {len(results['documents'][0]) if results['documents'] and results['documents'][0] else 0} matches")
             
             if results['documents'] and results['documents'][0]:
                 relevant_content = "\n\n".join(results['documents'][0])
                 sources = [f"Content ID: {id}" for id in results['ids'][0]]
+                
+                print(f"✅ Found {len(sources)} relevant sources")
+                print(f"📄 Content preview: {relevant_content[:200]}...")
                 
                 # Simple answer generation (without OpenAI for now)
                 answer = f"Based on the stored content, here are the relevant details about your question:\n\n{relevant_content[:500]}..."
@@ -220,6 +284,7 @@ async def ask_question(request: QuestionRequest):
                     response_time=(datetime.now() - start_time).total_seconds()
                 )
             else:
+                print("❌ No matching content found")
                 return QuestionResponse(
                     answer="I couldn't find relevant information about your question in the stored content.",
                     confidence=0.1,
