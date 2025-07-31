@@ -576,6 +576,43 @@ This information comes from your uploaded course materials. If you need more spe
         print(f"❌ Question processing error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Question processing failed: {str(e)}")
 
+# --- Clear Knowledge Base Endpoint ---
+@app.delete("/clear-knowledge-base")
+async def clear_knowledge_base():
+    """Clear all documents from the knowledge base"""
+    try:
+        import chromadb
+        chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db_v3_fresh")
+        client = chromadb.PersistentClient(path=chroma_path)
+        
+        try:
+            # Get the collection and count documents before deletion
+            collection = client.get_collection("canvas_content")
+            doc_count = collection.count()
+            
+            # Delete the collection
+            client.delete_collection("canvas_content")
+            
+            return {
+                "status": "success",
+                "message": f"Knowledge base cleared successfully. Removed {doc_count} documents.",
+                "documents_removed": doc_count
+            }
+            
+        except Exception as e:
+            if "does not exist" in str(e).lower():
+                return {
+                    "status": "success", 
+                    "message": "Knowledge base was already empty.",
+                    "documents_removed": 0
+                }
+            else:
+                raise e
+                
+    except Exception as e:
+        print(f"❌ Clear knowledge base error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to clear knowledge base: {str(e)}")
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
