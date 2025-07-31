@@ -235,38 +235,39 @@ async def analyze_content(request: ContentRequest):
 @app.post("/ingest-content", response_model=IngestResponse)
 async def ingest_content(request: ContentIngestRequest):
     """
-    Ingest Canvas content into the knowledge base
+    Ingest Canvas content into the knowledge base (simplified version)
     """
     start_time = datetime.now()
     
     try:
-        print(f"📥 Ingesting content: {request.title[:50]}...")
+        print(f"📥 [SIMPLIFIED] Ingesting content: {request.title[:50]}...")
         
-        # For now, implement simple content storage without complex pipeline
-        # This ensures the Chrome extension buttons work immediately
-        print(f"📥 Simple ingestion for: {request.title}")
+        # Simplified content logging - no database operations
+        print(f"� Title: {request.title}")
         print(f"📊 Content length: {len(request.content)} characters")
-        print(f"🎯 Content type: {request.content_type}")
-        print(f"📍 Course ID: {request.course_id}")
+        print(f"🎯 Content type: {request.content_type or 'unknown'}")
+        print(f"📍 Course ID: {request.course_id or 'unknown'}")
+        print(f"🔗 URL: {request.url or 'no-url'}")
+        print(f"📂 Source: {request.source}")
         
         # Calculate processing time
         processing_time = (datetime.now() - start_time).total_seconds()
         
-        print(f"✅ Content recorded successfully in {processing_time:.2f}s")
+        print(f"✅ Content logged successfully in {processing_time:.2f}s")
         
         return IngestResponse(
             success=True,
-            message=f"Content '{request.title}' recorded in knowledge base",
+            message=f"Content '{request.title}' logged successfully",
             processing_time=processing_time,
-            content_id=f"{request.source}_{request.course_id}_{abs(hash(request.title))}",
+            content_id=f"simple_{abs(hash(request.title))}_{int(start_time.timestamp())}",
             items_processed=1
         )
                 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Ingestion error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Content ingestion failed: {str(e)}")
+        print(f"❌ Simple ingestion error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Content logging failed: {str(e)}")
 
 @app.post("/ask-question", response_model=QuestionResponse)
 async def ask_question(request: QuestionRequest):
