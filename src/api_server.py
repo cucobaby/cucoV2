@@ -67,7 +67,7 @@ async def health_check():
     # Check ChromaDB with detailed diagnostics
     try:
         import chromadb
-        chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
+        chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db_v3_fresh")
         client = chromadb.PersistentClient(path=chroma_path)
         
         # Test collection operations
@@ -115,7 +115,7 @@ async def debug_chromadb():
         import chromadb
         debug_info["tests"]["import"] = "✅ ChromaDB imported successfully"
         
-        chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
+        chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db_v3_fresh")
         debug_info["chroma_path"] = chroma_path
         
         client = chromadb.PersistentClient(path=chroma_path)
@@ -182,13 +182,14 @@ async def ingest_content(request: ContentIngestRequest):
             import chromadb
             print("✅ ChromaDB imported successfully")
             
-            # Initialize ChromaDB with detailed logging
-            chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
-            print(f"📁 ChromaDB path: {chroma_path}")
+            # Use a fresh ChromaDB path to avoid schema conflicts
+            # Use environment variable or default to a v3 path to avoid old schema issues
+            fresh_db_path = os.getenv("CHROMA_DB_PATH", "./chroma_db_v3_fresh")
+            print(f"📁 Using fresh ChromaDB path: {fresh_db_path}")
             
-            print("🔄 Creating ChromaDB client...")
-            client = chromadb.PersistentClient(path=chroma_path)
-            print("✅ ChromaDB client created")
+            print("🔄 Creating ChromaDB client with fresh database...")
+            client = chromadb.PersistentClient(path=fresh_db_path)
+            print("✅ ChromaDB client created with fresh database")
             
             # Get or create collection with better error handling
             collection_name = "canvas_content"
@@ -315,11 +316,12 @@ async def ask_question(request: QuestionRequest):
             print("🔄 Importing ChromaDB for question answering...")
             import chromadb
             
-            chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
-            print(f"📁 ChromaDB path: {chroma_path}")
+            # Use the same fresh database path pattern
+            fresh_db_path = os.getenv("CHROMA_DB_PATH", "./chroma_db_v3_fresh")
+            print(f"📁 ChromaDB path: {fresh_db_path}")
             
             print("🔄 Creating ChromaDB client...")
-            client = chromadb.PersistentClient(path=chroma_path)
+            client = chromadb.PersistentClient(path=fresh_db_path)
             
             print("🔍 Getting canvas_content collection...")
             collection = client.get_collection("canvas_content")
