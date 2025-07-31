@@ -37,7 +37,6 @@ class ContentAnalyzer:
     """Analyzes any educational content to discover topics and structure"""
     
     def __init__(self):
-        print("hello")
         # Use same OpenAI initialization pattern as core_assistant.py
         try:
             from openai import OpenAI
@@ -127,21 +126,26 @@ class ContentAnalyzer:
             return self._get_default_analysis()
             
         prompt = f"""
-        Analyze this educational content and identify:
+        Analyze this Canvas course content and identify:
 
-        1. SUBJECT AREA: What academic subject/field is this? (e.g., Biology, Chemistry, History, etc.)
-        2. MAIN TOPICS: What are the 3-7 main topics covered?
+        1. SUBJECT AREA: What academic subject/field is this? (e.g., Biology, Chemistry, History, Mathematics, etc.)
+        2. MAIN TOPICS: What are the 3-7 main topics covered in this course material?
         3. OVERALL DIFFICULTY: Basic, Intermediate, or Advanced level?
 
-        For each main topic, provide:
-        - Name of the topic
-        - Brief description (1-2 sentences)
-        - Key concepts within this topic (3-5 important terms/ideas)
-        - Subtopics or specific areas covered
-        - Difficulty level (basic/intermediate/advanced)
-        - Appropriate question types (definition, process, comparison, application, calculation)
+        This content is from a student's Canvas course, so focus on identifying:
+        - Course-specific topics that students need to master
+        - Key concepts that will likely appear on exams or assignments
+        - Skills and knowledge students should gain from this material
 
-        Content to analyze:
+        For each main topic, provide:
+        - Name of the topic (as it would appear in course materials)
+        - Brief description (1-2 sentences explaining what students learn)
+        - Key concepts within this topic (3-5 important terms/ideas students must know)
+        - Subtopics or specific areas covered in the course
+        - Difficulty level (basic/intermediate/advanced) for this course level
+        - Appropriate question types for assessment (definition, process, comparison, application, calculation)
+
+        Canvas course content to analyze:
         {content[:8000]}
 
         Respond in this JSON format:
@@ -150,12 +154,12 @@ class ContentAnalyzer:
             "overall_difficulty": "intermediate",
             "topics": [
                 {{
-                    "name": "Topic Name",
-                    "description": "Brief description of what this topic covers",
-                    "key_concepts": ["concept1", "concept2", "concept3"],
-                    "subtopics": ["subtopic1", "subtopic2"],
-                    "difficulty_level": "basic",
-                    "question_types": ["definition", "process"]
+                    "name": "Cell Structure and Function",
+                    "description": "Study of cellular components and how they work together in living organisms",
+                    "key_concepts": ["prokaryotic cells", "eukaryotic cells", "organelles", "cell membrane", "nucleus"],
+                    "subtopics": ["cell types", "organelle functions", "membrane transport"],
+                    "difficulty_level": "intermediate",
+                    "question_types": ["definition", "process", "comparison"]
                 }}
             ]
         }}
@@ -188,19 +192,23 @@ class ContentAnalyzer:
             return {}
             
         prompt = f"""
-        Extract important terms and their definitions from this educational content.
-        Look for:
-        - Technical terms that are defined or explained
-        - Key concepts that students need to understand
-        - Important vocabulary specific to this subject
+        Extract important terms and their definitions from this Canvas course content.
+        
+        Focus on terms that students need to know for this specific course:
+        - Technical terms that are defined or explained in the course material
+        - Key vocabulary that will appear on exams, quizzes, or assignments
+        - Important concepts specific to this subject area
+        - Terms that instructors emphasize or repeat
+        - Definitions that students should memorize or understand deeply
 
-        Content:
+        Course content:
         {content[:6000]}
 
-        Respond with a JSON object where keys are terms and values are definitions:
+        Respond with a JSON object where keys are terms and values are clear, student-friendly definitions:
         {{
-            "photosynthesis": "The process by which plants convert light energy into chemical energy",
-            "ATP": "Adenosine triphosphate, the energy currency of cells"
+            "photosynthesis": "The process by which plants convert light energy into chemical energy (glucose) using carbon dioxide and water",
+            "mitochondria": "The powerhouse organelles of cells that produce ATP energy through cellular respiration",
+            "ATP": "Adenosine triphosphate - the primary energy currency used by all living cells"
         }}
         """
         
@@ -308,10 +316,32 @@ class ContentAnalyzer:
             return []
     
     def _classify_content_type(self, content: str, source_info: Dict = None) -> str:
-        """Classify the type of educational content"""
-        # Check source info first
+        """Classify the type of educational content with Canvas-specific awareness"""
+        # Check Canvas-specific source info first
         if source_info:
             filename = source_info.get('filename', '').lower()
+            url = source_info.get('url', '').lower()
+            course_id = source_info.get('course_id', '').lower()
+            
+            # Canvas-specific content type detection
+            if 'pages' in url or 'page' in filename:
+                return 'canvas_page'
+            elif 'assignments' in url or 'assignment' in filename:
+                return 'canvas_assignment'
+            elif 'modules' in url or 'module' in filename:
+                return 'canvas_module'
+            elif 'announcements' in url or 'announcement' in filename:
+                return 'canvas_announcement' 
+            elif 'discussions' in url or 'discussion' in filename:
+                return 'canvas_discussion'
+            elif 'files' in url or any(ext in filename for ext in ['.pdf', '.docx', '.pptx']):
+                return 'canvas_file'
+            elif 'syllabus' in url or 'syllabus' in filename:
+                return 'canvas_syllabus'
+            elif 'quiz' in url or 'quiz' in filename:
+                return 'canvas_quiz'
+            
+            # Traditional academic content types
             if 'textbook' in filename or 'chapter' in filename:
                 return 'textbook'
             elif 'lecture' in filename or 'notes' in filename:
@@ -321,10 +351,21 @@ class ContentAnalyzer:
             elif 'lab' in filename or 'experiment' in filename:
                 return 'lab_manual'
         
-        # Analyze content patterns
+        # Analyze content patterns with Canvas awareness
         content_lower = content.lower()
         
-        if 'chapter' in content_lower and 'section' in content_lower:
+        # Canvas-specific content patterns
+        if any(pattern in content_lower for pattern in ['assignment instructions', 'due date', 'submit']):
+            return 'canvas_assignment'
+        elif any(pattern in content_lower for pattern in ['discussion prompt', 'reply to', 'post']):
+            return 'canvas_discussion'
+        elif any(pattern in content_lower for pattern in ['syllabus', 'course schedule', 'grading policy']):
+            return 'canvas_syllabus'
+        elif any(pattern in content_lower for pattern in ['announcement', 'important notice']):
+            return 'canvas_announcement'
+        
+        # Traditional academic patterns
+        elif 'chapter' in content_lower and 'section' in content_lower:
             return 'textbook'
         elif 'lecture' in content_lower or 'today we will' in content_lower:
             return 'lecture_notes'
@@ -333,7 +374,7 @@ class ContentAnalyzer:
         elif 'procedure' in content_lower and 'materials' in content_lower:
             return 'lab_manual'
         else:
-            return 'educational_material'
+            return 'canvas_material'  # Default for Canvas content
     
     def _parse_fallback_topics(self, text: str) -> Dict[str, Any]:
         """Fallback parser if JSON parsing fails"""
@@ -360,7 +401,7 @@ class ContentAnalyzer:
 
     def get_topic_summary(self, analysis: ContentAnalysis) -> str:
         """Generate a human-readable summary of the content analysis"""
-        summary = f"📚 **Content Analysis Summary**\n\n"
+        summary = f"📚 **Canvas Content Analysis Summary**\n\n"
         summary += f"**Subject Area:** {analysis.subject_area}\n"
         summary += f"**Content Type:** {analysis.content_type}\n"
         summary += f"**Difficulty Level:** {analysis.estimated_difficulty}\n\n"
@@ -373,3 +414,57 @@ class ContentAnalyzer:
         summary += f"**Learning Objectives:** {len(analysis.learning_objectives)} objectives generated\n"
         
         return summary
+
+    def get_course_study_guide(self, analysis: ContentAnalysis) -> str:
+        """Generate a Canvas course-specific study guide from the analysis"""
+        if not analysis.main_topics:
+            return "No topics identified for study guide generation."
+            
+        study_guide = f"📖 **Study Guide: {analysis.subject_area}**\n\n"
+        
+        # Course Overview
+        study_guide += f"**Course Material Type:** {analysis.content_type.replace('_', ' ').title()}\n"
+        study_guide += f"**Difficulty Level:** {analysis.estimated_difficulty.title()}\n\n"
+        
+        # Learning Objectives
+        if analysis.learning_objectives:
+            study_guide += "**🎯 Learning Objectives:**\n"
+            for i, objective in enumerate(analysis.learning_objectives[:5], 1):
+                study_guide += f"{i}. {objective}\n"
+            study_guide += "\n"
+        
+        # Main Topics Breakdown
+        study_guide += "**📚 Topic Breakdown:**\n\n"
+        for i, topic in enumerate(analysis.main_topics, 1):
+            study_guide += f"**{i}. {topic.name}** ({topic.difficulty_level})\n"
+            study_guide += f"   {topic.description}\n\n"
+            
+            if topic.key_concepts:
+                study_guide += f"   **Key Concepts:**\n"
+                for concept in topic.key_concepts:
+                    study_guide += f"   • {concept}\n"
+                study_guide += "\n"
+            
+            if topic.subtopics:
+                study_guide += f"   **Subtopics:** {', '.join(topic.subtopics)}\n\n"
+        
+        # Key Terms Section
+        if analysis.key_terms:
+            study_guide += "**📝 Important Terms to Know:**\n"
+            for term, definition in list(analysis.key_terms.items())[:10]:  # Top 10 terms
+                study_guide += f"• **{term}**: {definition}\n"
+            study_guide += "\n"
+        
+        # Study Tips
+        study_guide += "**💡 Study Tips for This Content:**\n"
+        if analysis.estimated_difficulty == "basic":
+            study_guide += "• Focus on definitions and basic understanding\n"
+            study_guide += "• Practice identifying key terms and concepts\n"
+        elif analysis.estimated_difficulty == "intermediate":
+            study_guide += "• Understand relationships between concepts\n"
+            study_guide += "• Practice applying knowledge to new situations\n"
+        else:  # advanced
+            study_guide += "• Analyze complex relationships and processes\n"
+            study_guide += "• Synthesize information across multiple topics\n"
+        
+        return study_guide
