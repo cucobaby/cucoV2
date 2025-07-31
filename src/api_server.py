@@ -5,6 +5,7 @@ Exposes the content processing pipeline as web API endpoints
 import os
 import tempfile
 import asyncio
+import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException, BackgroundTasks
@@ -235,40 +236,131 @@ async def analyze_content(request: ContentRequest):
 @app.post("/ingest-content", response_model=IngestResponse)
 async def ingest_content(request: ContentIngestRequest):
     """
-    Ingest Canvas content into the knowledge base (simplified version)
+    Ingest Canvas content into the knowledge base through full pipeline
     """
     start_time = datetime.now()
     
     try:
-        print(f"📥 [SIMPLIFIED] Ingesting content: {request.title[:50]}...")
+        print(f"📥 Ingesting content through pipeline: {request.title[:50]}...")
         
-        # Simplified content logging - no database operations
-        print(f"� Title: {request.title}")
-        print(f"📊 Content length: {len(request.content)} characters")
-        print(f"🎯 Content type: {request.content_type or 'unknown'}")
-        print(f"📍 Course ID: {request.course_id or 'unknown'}")
-        print(f"🔗 URL: {request.url or 'no-url'}")
-        print(f"📂 Source: {request.source}")
+        # Create temporary file for pipeline processing
+        temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8')
+        temp_file_path = temp_file.name
         
-        # Calculate processing time
-        processing_time = (datetime.now() - start_time).total_seconds()
+        # Structure content for pipeline processing
+        structured_content = f"""---
+title: "{request.title}"
+course: "{request.course_id or 'Canvas Course'}"
+content_type: "{request.content_type or 'canvas_material'}"
+source_url: "{request.url or ''}"
+date: "{request.timestamp or datetime.now().isoformat()}"
+source: "{request.source}"
+---
+
+# {request.title}
+
+{request.content}
+"""
         
-        print(f"✅ Content logged successfully in {processing_time:.2f}s")
+        temp_file.write(structured_content)
+        temp_file.close()
         
-        return IngestResponse(
-            status="success",
-            message=f"Content '{request.title}' logged successfully",
-            chunks_created=1,
-            total_content_items=1,
-            content_id=f"simple_{abs(hash(request.title))}_{int(start_time.timestamp())}",
-            processing_time=processing_time
-        )
+        try:
+            # Process through full pipeline
+            print("� Processing through ContentPipeline...")
+            
+            if FULL_MODE:
+                pipeline = ContentPipeline(temp_file_path)
+                result = pipeline.run_pipeline()
+                
+                if result["status"] == "success":
+                    chunks_created = result.get("chunks_created", 1)
+                    print(f"✅ Pipeline completed: {chunks_created} chunks created")
+                    
+                    return IngestResponse(
+                        status="success",
+                        message=f"Content '{request.title}' processed through pipeline",
+                        chunks_created=chunks_created,
+                        total_content_items=1,
+                        content_id=f"pipeline_{abs(hash(request.title))}_{int(start_time.timestamp())}",
+                        processing_time=(datetime.now() - start_time).total_seconds()
+                    )
+                else:
+                    raise Exception(f"Pipeline failed: {result.get('error', 'Unknown error')}")
+            else:
+                raise Exception("Full mode not available")
+                
+        except Exception as pipeline_error:
+            print(f"⚠️ Pipeline error: {pipeline_error}")
+            
+            # Fallback: Try direct ChromaDB storage with schema fix
+            print("� Attempting direct ChromaDB storage with schema fix...")
+            
+            try:
+                import chromadb
+                from datetime import datetime
+                import uuid
+                
+                # Initialize ChromaDB with fresh collection if needed
+                chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
+                client = chromadb.PersistentClient(path=chroma_path)
+                
+                # Try to get existing collection, or create new one
+                try:
+                    collection = client.get_collection("canvas_content")
+                except:
+                    # Create new collection for Canvas content
+                    print("� Creating new ChromaDB collection for Canvas content...")
+                    collection = client.create_collection(
+                        name="canvas_content",
+                        metadata={"description": "Canvas course materials ingested via Chrome extension"}
+                    )
+                
+                # Prepare content for storage
+                chunk_id = f"canvas_{abs(hash(request.title))}_{int(start_time.timestamp())}"
+                
+                # Store in ChromaDB
+                collection.add(
+                    documents=[request.content],
+                    metadatas=[{
+                        "title": request.title,
+                        "content_type": request.content_type or "unknown",
+                        "course_id": request.course_id or "unknown", 
+                        "source_url": request.url or "",
+                        "source": request.source,
+                        "timestamp": request.timestamp or datetime.now().isoformat(),
+                        "ingested_at": datetime.now().isoformat()
+                    }],
+                    ids=[chunk_id]
+                )
+                
+                print(f"✅ Content stored directly in ChromaDB")
+                
+                return IngestResponse(
+                    status="success", 
+                    message=f"Content '{request.title}' stored in knowledge base",
+                    chunks_created=1,
+                    total_content_items=1,
+                    content_id=chunk_id,
+                    processing_time=(datetime.now() - start_time).total_seconds()
+                )
+                
+            except Exception as storage_error:
+                print(f"❌ Direct storage also failed: {storage_error}")
+                raise Exception(f"Both pipeline and direct storage failed: {storage_error}")
+            
+        finally:
+            # Clean up temporary file
+            try:
+                os.unlink(temp_file_path)
+            except:
+                pass
                 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Simple ingestion error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Content logging failed: {str(e)}")
+        print(f"❌ Content ingestion failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Content ingestion failed: {str(e)}")
 
 @app.post("/ask-question", response_model=QuestionResponse)
 async def ask_question(request: QuestionRequest):
