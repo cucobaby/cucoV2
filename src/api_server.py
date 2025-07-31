@@ -6,7 +6,7 @@ import os
 import tempfile
 import asyncio
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -31,6 +31,16 @@ class ContentRequest(BaseModel):
     content_type: str = "canvas_content"
     title: str = "Canvas Content"
 
+class ContentIngestRequest(BaseModel):
+    title: str
+    content: str
+    source: str = "canvas_link"
+    url: Optional[str] = None
+    content_type: Optional[str] = None
+    context: Optional[Dict[str, Any]] = None
+    course_id: Optional[str] = None
+    timestamp: Optional[str] = None
+
 class QuestionRequest(BaseModel):
     question: str
     context_limit: int = 5
@@ -39,6 +49,14 @@ class QuizRequest(BaseModel):
     topic: str
     num_questions: int = 5
     difficulty: str = "intermediate"
+
+class IngestResponse(BaseModel):
+    status: str
+    message: str
+    chunks_created: int
+    total_content_items: int
+    content_id: str
+    processing_time: float
 
 class AnalysisResponse(BaseModel):
     status: str
@@ -213,6 +231,64 @@ async def analyze_content(request: ContentRequest):
     except Exception as e:
         print(f"❌ Analysis error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+@app.post("/ingest-content", response_model=IngestResponse)
+async def ingest_content(request: ContentIngestRequest):
+    """
+    Ingest Canvas content into the knowledge base
+    """
+    start_time = datetime.now()
+    
+    try:
+        print(f"📥 Ingesting content: {request.title[:50]}...")
+        
+        # Create temporary file for pipeline processing
+        temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8')
+        temp_file_path = temp_file.name
+        
+        # Structure content for knowledge base
+        structured_content = f"""Title: {request.title}
+Content Type: {request.content_type}
+Source: {request.source}
+URL: {request.url}
+Course ID: {request.course_id or 'Unknown'}
+
+Content:
+{request.content}"""
+        
+        temp_file.write(structured_content)
+        temp_file.close()
+        
+        try:
+            # Process content into knowledge base
+            pipeline = ContentPipeline()
+            pipeline.process_content(temp_file_path)
+            
+            # Calculate processing time
+            processing_time = (datetime.now() - start_time).total_seconds()
+            
+            print(f"✅ Content ingested successfully in {processing_time:.2f}s")
+            
+            return IngestResponse(
+                success=True,
+                message="Content successfully added to knowledge base",
+                processing_time=processing_time,
+                content_id=f"{request.source}_{request.course_id}_{hash(request.title)}",
+                items_processed=1
+            )
+            
+        finally:
+            # Clean up temporary file
+            try:
+                os.unlink(temp_file_path)
+            except:
+                pass
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ingestion error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Content ingestion failed: {str(e)}")
 
 @app.post("/ask-question", response_model=QuestionResponse)
 async def ask_question(request: QuestionRequest):
