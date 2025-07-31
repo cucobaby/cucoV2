@@ -256,11 +256,12 @@ async def ingest_content(request: ContentIngestRequest):
         print(f"✅ Content logged successfully in {processing_time:.2f}s")
         
         return IngestResponse(
-            success=True,
+            status="success",
             message=f"Content '{request.title}' logged successfully",
-            processing_time=processing_time,
+            chunks_created=1,
+            total_content_items=1,
             content_id=f"simple_{abs(hash(request.title))}_{int(start_time.timestamp())}",
-            items_processed=1
+            processing_time=processing_time
         )
                 
     except HTTPException:
