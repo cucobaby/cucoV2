@@ -54,22 +54,42 @@ class QuestionResponse(BaseModel):
     sources: List[str]
     response_time: float
 
-# --- Health Check ---
+# --- Health Check with Enhanced ChromaDB Diagnostics ---
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint with detailed ChromaDB diagnostics"""
     health_status = {
         "status": "healthy",
         "services": {},
         "timestamp": datetime.now().isoformat()
     }
     
-    # Check ChromaDB
+    # Check ChromaDB with detailed diagnostics
     try:
         import chromadb
         chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
         client = chromadb.PersistentClient(path=chroma_path)
-        health_status["services"]["chromadb"] = "connected"
+        
+        # Test collection operations
+        try:
+            # Try to get canvas_content collection
+            try:
+                collection = client.get_collection("canvas_content")
+                count = collection.count()
+                health_status["services"]["chromadb"] = f"connected (collection exists, {count} docs)"
+            except:
+                # Try to create a test collection
+                test_collection = client.create_collection("health_test")
+                test_collection.add(
+                    documents=["health check test"],
+                    metadatas=[{"test": "true"}],
+                    ids=["health_test"]
+                )
+                client.delete_collection("health_test")
+                health_status["services"]["chromadb"] = "connected (test collection created/deleted successfully)"
+        except Exception as op_error:
+            health_status["services"]["chromadb"] = f"connected but operations failing: {str(op_error)}"
+            
     except Exception as e:
         health_status["services"]["chromadb"] = f"error: {str(e)}"
     
@@ -81,6 +101,69 @@ async def health_check():
         health_status["services"]["openai"] = "not_available"
     
     return health_status
+
+# --- Diagnostic Endpoint ---
+@app.get("/debug/chromadb")
+async def debug_chromadb():
+    """Diagnostic endpoint to test ChromaDB operations"""
+    debug_info = {
+        "timestamp": datetime.now().isoformat(),
+        "tests": {}
+    }
+    
+    try:
+        import chromadb
+        debug_info["tests"]["import"] = "✅ ChromaDB imported successfully"
+        
+        chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
+        debug_info["chroma_path"] = chroma_path
+        
+        client = chromadb.PersistentClient(path=chroma_path)
+        debug_info["tests"]["client"] = "✅ Client created successfully"
+        
+        # Test collection operations
+        test_collection_name = f"debug_test_{int(datetime.now().timestamp())}"
+        
+        try:
+            # Create test collection
+            collection = client.create_collection(test_collection_name)
+            debug_info["tests"]["create_collection"] = "✅ Collection created"
+            
+            # Add test document
+            collection.add(
+                documents=["This is a test document for debugging ChromaDB functionality"],
+                metadatas=[{"test": "true", "type": "debug"}],
+                ids=["debug_doc_1"]
+            )
+            debug_info["tests"]["add_document"] = "✅ Document added"
+            
+            # Query test
+            results = collection.query(query_texts=["test document"], n_results=1)
+            debug_info["tests"]["query"] = f"✅ Query successful, found {len(results['documents'][0])} results"
+            
+            # Count test
+            count = collection.count()
+            debug_info["tests"]["count"] = f"✅ Count successful: {count} documents"
+            
+            # Clean up
+            client.delete_collection(test_collection_name)
+            debug_info["tests"]["cleanup"] = "✅ Test collection deleted"
+            
+        except Exception as test_error:
+            debug_info["tests"]["collection_operations"] = f"❌ Failed: {str(test_error)}"
+            
+        # Check existing canvas_content collection
+        try:
+            canvas_collection = client.get_collection("canvas_content")
+            canvas_count = canvas_collection.count()
+            debug_info["canvas_collection"] = f"✅ Exists with {canvas_count} documents"
+        except Exception as canvas_error:
+            debug_info["canvas_collection"] = f"❌ Does not exist: {str(canvas_error)}"
+            
+    except Exception as e:
+        debug_info["tests"]["general_error"] = f"❌ {str(e)}"
+    
+    return debug_info
 
 # --- Content Ingestion ---
 @app.post("/ingest-content", response_model=IngestResponse)
