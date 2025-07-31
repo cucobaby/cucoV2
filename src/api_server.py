@@ -218,18 +218,62 @@ async def ingest_content(request: ContentIngestRequest):
             chunk_id = f"canvas_{abs(hash(request.title))}_{int(start_time.timestamp())}"
             print(f"🆔 Generated chunk ID: {chunk_id}")
             
-            # Prepare metadata with validation
-            metadata = {
-                "title": str(request.title)[:500],  # Limit title length
-                "content_type": str(request.content_type or "unknown")[:100],
-                "course_id": str(request.course_id or "unknown")[:100], 
-                "source_url": str(request.url or "")[:500],
-                "source": str(request.source)[:100],
-                "timestamp": str(request.timestamp or datetime.now().isoformat()),
-                "ingested_at": datetime.now().isoformat()
-            }
+            # Enhanced content processing with ContentAnalyzer
+            try:
+                print("🔍 Running content analysis for enhanced storage...")
+                
+                # Import and use ContentAnalyzer for intelligent content processing
+                import sys
+                sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+                
+                from content_analyzer import ContentAnalyzer
+                
+                analyzer = ContentAnalyzer()
+                
+                # Analyze the content to extract topics and key information
+                source_info = {
+                    "filename": request.title,
+                    "url": request.url,
+                    "course_id": request.course_id
+                }
+                
+                content_analysis = analyzer.analyze_content([request.content], source_info)
+                
+                print(f"📊 Analysis complete: {content_analysis.subject_area} - {len(content_analysis.main_topics)} topics")
+                
+                # Enhanced metadata with analysis results
+                enhanced_metadata = {
+                    "title": str(request.title)[:500],
+                    "content_type": str(request.content_type or content_analysis.content_type)[:100],
+                    "course_id": str(request.course_id or "unknown")[:100], 
+                    "source_url": str(request.url or "")[:500],
+                    "source": str(request.source)[:100],
+                    "timestamp": str(request.timestamp or datetime.now().isoformat()),
+                    "ingested_at": datetime.now().isoformat(),
+                    # Enhanced fields from content analysis
+                    "subject_area": content_analysis.subject_area,
+                    "difficulty_level": content_analysis.estimated_difficulty,
+                    "main_topics": [topic.name for topic in content_analysis.main_topics[:5]],  # Top 5 topics
+                    "key_concepts": list(content_analysis.key_terms.keys())[:10],  # Top 10 key terms
+                    "learning_objectives": content_analysis.learning_objectives[:3] if content_analysis.learning_objectives else []
+                }
+                
+                print(f"📝 Enhanced metadata with {len(enhanced_metadata.get('main_topics', []))} topics and {len(enhanced_metadata.get('key_concepts', []))} key concepts")
+                
+            except Exception as analysis_error:
+                print(f"⚠️ Content analysis failed, using basic metadata: {analysis_error}")
+                # Fallback to basic metadata
+                enhanced_metadata = {
+                    "title": str(request.title)[:500],
+                    "content_type": str(request.content_type or "unknown")[:100],
+                    "course_id": str(request.course_id or "unknown")[:100], 
+                    "source_url": str(request.url or "")[:500],
+                    "source": str(request.source)[:100],
+                    "timestamp": str(request.timestamp or datetime.now().isoformat()),
+                    "ingested_at": datetime.now().isoformat()
+                }
             
-            print(f"📝 Metadata prepared: {list(metadata.keys())}")
+            print(f"📝 Enhanced metadata prepared: {list(enhanced_metadata.keys())}")
             print(f"📄 Content length: {len(request.content)} chars")
             
             # Store in ChromaDB with validation
@@ -237,7 +281,7 @@ async def ingest_content(request: ContentIngestRequest):
                 print("🔄 Adding document to collection...")
                 collection.add(
                     documents=[str(request.content)],
-                    metadatas=[metadata],
+                    metadatas=[enhanced_metadata],
                     ids=[chunk_id]
                 )
                 print(f"✅ Document added successfully")
@@ -252,7 +296,7 @@ async def ingest_content(request: ContentIngestRequest):
             except Exception as add_error:
                 print(f"❌ Failed to add document: {add_error}")
                 print(f"   Document length: {len(request.content)}")
-                print(f"   Metadata keys: {list(metadata.keys())}")
+                print(f"   Enhanced metadata keys: {list(enhanced_metadata.keys())}")
                 raise add_error
             
             print(f"✅ Content stored in ChromaDB with ID: {chunk_id}")
@@ -359,15 +403,84 @@ async def ask_question(request: QuestionRequest):
                 print(f"✅ Found {len(sources)} relevant sources")
                 print(f"📄 Content preview: {relevant_content[:200]}...")
                 
-                # Simple answer generation (without OpenAI for now)
-                answer = f"Based on the stored content, here are the relevant details about your question:\n\n{relevant_content[:500]}..."
-                
-                return QuestionResponse(
-                    answer=answer,
-                    confidence=0.8,
-                    sources=sources,
-                    response_time=(datetime.now() - start_time).total_seconds()
-                )
+                # Enhanced answer generation with OpenAI
+                try:
+                    print("🧠 Generating intelligent answer with OpenAI...")
+                    
+                    # Check if OpenAI is available
+                    try:
+                        from openai import OpenAI
+                        openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+                        
+                        # Create enhanced prompt with context
+                        enhanced_prompt = f"""
+You are an AI tutor helping a student understand their course materials. 
+
+Based on the following content from their course materials, please answer their question in a helpful, educational way.
+
+STUDENT'S QUESTION: {request.question}
+
+RELEVANT COURSE CONTENT:
+{relevant_content}
+
+Please provide a clear, educational answer that:
+1. Directly answers their question
+2. Uses information from the provided course content
+3. Explains concepts in a way that helps learning
+4. Includes relevant examples or details from the content
+5. Is conversational and encouraging
+
+If the content doesn't fully answer their question, acknowledge what you can answer and suggest what additional information might be helpful.
+"""
+                        
+                        # Generate intelligent response
+                        ai_response = openai_client.chat.completions.create(
+                            model="gpt-3.5-turbo",
+                            messages=[{"role": "user", "content": enhanced_prompt}],
+                            temperature=0.7,
+                            max_tokens=500
+                        )
+                        
+                        intelligent_answer = ai_response.choices[0].message.content
+                        print("✅ OpenAI generated intelligent answer")
+                        
+                        return QuestionResponse(
+                            answer=intelligent_answer,
+                            confidence=0.9,  # Higher confidence with AI processing
+                            sources=sources,
+                            response_time=(datetime.now() - start_time).total_seconds()
+                        )
+                        
+                    except Exception as openai_error:
+                        print(f"⚠️ OpenAI generation failed: {openai_error}")
+                        # Fallback to enhanced template-based answer
+                        enhanced_answer = f"""Based on your course materials, here's what I found about your question:
+
+**Question:** {request.question}
+
+**Answer from your content:**
+{relevant_content[:800]}
+
+This information comes from your uploaded course materials. If you need more specific details or have follow-up questions, feel free to ask!"""
+                        
+                        return QuestionResponse(
+                            answer=enhanced_answer,
+                            confidence=0.8,
+                            sources=sources,
+                            response_time=(datetime.now() - start_time).total_seconds()
+                        )
+                        
+                except Exception as enhancement_error:
+                    print(f"⚠️ Answer enhancement failed: {enhancement_error}")
+                    # Original simple answer as final fallback
+                    answer = f"Based on the stored content, here are the relevant details about your question:\n\n{relevant_content[:500]}..."
+                    
+                    return QuestionResponse(
+                        answer=answer,
+                        confidence=0.8,
+                        sources=sources,
+                        response_time=(datetime.now() - start_time).total_seconds()
+                    )
             else:
                 print("❌ No matching content found")
                 return QuestionResponse(
