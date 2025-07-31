@@ -16,7 +16,13 @@ load_dotenv()
 
 class ContentProcessor:
     def __init__(self):
-        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        try:
+            from openai import OpenAI
+            self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        except Exception as e:
+            print(f"⚠️ OpenAI initialization failed: {e}")
+            self.openai_client = None
+        
         self.chunk_size = int(os.getenv("CHUNK_SIZE", 500))
         self.chunk_overlap = int(os.getenv("CHUNK_OVERLAP", 50))
         
@@ -135,6 +141,10 @@ class ContentProcessor:
     
     def generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for text using OpenAI"""
+        if not self.openai_client:
+            print("⚠️ OpenAI client not available, skipping embedding generation")
+            return []
+            
         try:
             response = self.openai_client.embeddings.create(
                 input=text,
