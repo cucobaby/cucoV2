@@ -381,12 +381,89 @@ async def ask_question(request: QuestionRequest):
             except Exception as count_error:
                 print(f"⚠️ Could not count documents: {count_error}")
             
-            # Search for relevant content
+            # Enhanced semantic search for relevant content
             print(f"🔍 Searching for: '{request.question[:100]}'...")
-            results = collection.query(
-                query_texts=[request.question],
-                n_results=min(3, count) if 'count' in locals() else 3
-            )
+            
+            # Improve search quality with multiple approaches
+            try:
+                # Primary search: Standard semantic similarity
+                results = collection.query(
+                    query_texts=[request.question],
+                    n_results=min(5, count) if 'count' in locals() else 5
+                )
+                
+                print(f"📋 Initial search results: {len(results['documents'][0]) if results['documents'] and results['documents'][0] else 0} matches")
+                
+                # If we don't get good results, try expanded search terms
+                if not results['documents'] or not results['documents'][0] or len(results['documents'][0]) < 2:
+                    print("🔍 Expanding search with additional terms...")
+                    
+                    # Extract key terms from the question for better matching
+                    question_words = request.question.lower().split()
+                    key_terms = [word for word in question_words if len(word) > 3 and word not in ['what', 'how', 'why', 'when', 'where', 'about', 'explain', 'describe', 'tell']]
+                    
+                    if key_terms:
+                        expanded_query = f"{request.question} {' '.join(key_terms[:3])}"
+                        print(f"🔍 Expanded query: '{expanded_query[:100]}'...")
+                        
+                        results = collection.query(
+                            query_texts=[expanded_query],
+                            n_results=min(5, count) if 'count' in locals() else 5
+                        )
+                
+                # Filter and rank results by relevance
+                if results['documents'] and results['documents'][0]:
+                    print(f"✅ Processing {len(results['documents'][0])} search results...")
+                    
+                    # Simple relevance scoring based on content quality and question matching
+                    scored_results = []
+                    question_lower = request.question.lower()
+                    
+                    for i, (doc, doc_id) in enumerate(zip(results['documents'][0], results['ids'][0])):
+                        doc_lower = doc.lower()
+                        
+                        # Calculate relevance score
+                        relevance_score = 0
+                        
+                        # Check for direct term matches
+                        question_terms = question_lower.split()
+                        for term in question_terms:
+                            if len(term) > 3 and term in doc_lower:
+                                relevance_score += 1
+                        
+                        # Prefer longer, more detailed content
+                        if len(doc) > 200:
+                            relevance_score += 0.5
+                        
+                        # ChromaDB's similarity ranking (earlier results are more similar)
+                        position_score = (len(results['documents'][0]) - i) / len(results['documents'][0])
+                        relevance_score += position_score
+                        
+                        scored_results.append({
+                            'doc': doc,
+                            'id': doc_id,
+                            'score': relevance_score
+                        })
+                    
+                    # Sort by relevance score
+                    scored_results.sort(key=lambda x: x['score'], reverse=True)
+                    
+                    # Take top results
+                    top_results = scored_results[:3]
+                    
+                    # Reconstruct results in the expected format
+                    results['documents'][0] = [r['doc'] for r in top_results]
+                    results['ids'][0] = [r['id'] for r in top_results]
+                    
+                    print(f"📊 Relevance scores: {[f'{r['score']:.2f}' for r in top_results]}")
+                    
+            except Exception as search_error:
+                print(f"⚠️ Advanced search failed: {search_error}")
+                # Fallback to simple search
+                results = collection.query(
+                    query_texts=[request.question],
+                    n_results=min(3, count) if 'count' in locals() else 3
+                )
             
             print(f"📋 Search results: {len(results['documents'][0]) if results['documents'] and results['documents'][0] else 0} matches")
             
