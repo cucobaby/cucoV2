@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Canvas AI Assistant",
-  "version": "1.0.0",
-  "description": "AI-powered educational assistant for Canvas LMS",
+  "name": "Canvas AI Assistant - Updated",
+  "version": "2.0.0",
+  "description": "AI-powered educational assistant for Canvas LMS with improved content capture",
   "permissions": [
     "activeTab",
     "storage",
@@ -28,6 +28,6 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Canvas AI Assistant"
+    "default_title": "Canvas AI Assistant - Updated"
   }
 }
