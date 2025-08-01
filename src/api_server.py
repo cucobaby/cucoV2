@@ -5,6 +5,7 @@ import os
 import tempfile
 import asyncio
 import uuid
+import time
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException, BackgroundTasks
@@ -229,8 +230,39 @@ async def ask_question(request: QuestionRequest):
             context = "\n\n".join(context_parts)
             
             # Generate answer with OpenAI
-            openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            try:
+                import openai
+                openai_client = openai.OpenAI(
+                    api_key=os.getenv("OPENAI_API_KEY")
+                )
+            except Exception as e:
+                print(f"⚠️ OpenAI client initialization failed: {e}")
+                # Try alternative initialization
+                try:
+                    import openai
+                    openai.api_key = os.getenv("OPENAI_API_KEY")
+                    # Use older style client
+                    response_text = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": "You are an AI assistant helping students with their course materials. Answer questions based only on the provided context."},
+                            {"role": "user", "content": f"Question: {request.question}\n\nContext from course materials:\n{context}\n\nPlease provide a helpful answer based on the course materials."}
+                        ],
+                        max_tokens=500
+                    )
+                    answer = response_text.choices[0].message.content
+                    
+                    return QuestionResponse(
+                        answer=answer,
+                        confidence=0.8,
+                        sources=sources,
+                        response_time=(datetime.now() - start_time).total_seconds()
+                    )
+                except Exception as e2:
+                    print(f"⚠️ Fallback OpenAI client also failed: {e2}")
+                    raise HTTPException(status_code=500, detail=f"Question processing failed: {str(e2)}")
             
+            # Use new style client
             response = openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
