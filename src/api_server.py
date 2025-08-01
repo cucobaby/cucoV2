@@ -172,6 +172,17 @@ async def ingest_content(request: ContentIngestRequest):
         print(f"❌ Ingestion error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Content ingestion failed: {str(e)}")
 
+# --- Test Endpoint ---
+@app.get("/test-simple")
+async def test_simple():
+    """Simple test endpoint to verify deployment"""
+    return {
+        "status": "working",
+        "message": "API is responding correctly",
+        "timestamp": datetime.now().isoformat(),
+        "version": "fixed-openai-v2"
+    }
+
 # --- Simplified Question Answering ---
 @app.post("/ask-question", response_model=QuestionResponse)
 async def ask_question(request: QuestionRequest):
