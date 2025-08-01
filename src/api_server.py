@@ -260,10 +260,15 @@ async def ask_question(request: QuestionRequest):
                 import openai
                 print(f"🔧 Initializing OpenAI client...")
                 
-                # Simple, reliable OpenAI client initialization
-                openai_client = openai.OpenAI(
-                    api_key=os.getenv("OPENAI_API_KEY")
-                )
+                # Get API key
+                api_key = os.getenv("OPENAI_API_KEY")
+                if not api_key:
+                    raise Exception("OpenAI API key not found in environment")
+                
+                print(f"✅ API key found: {api_key[:8]}...")
+                
+                # Simple, clean OpenAI client initialization - no extra parameters
+                openai_client = openai.OpenAI(api_key=api_key)
                 
                 print(f"✅ OpenAI client initialized successfully")
                 print(f"📝 Generating answer for question: {request.question[:50]}...")
@@ -284,9 +289,12 @@ async def ask_question(request: QuestionRequest):
                 
             except Exception as openai_error:
                 print(f"❌ OpenAI processing failed: {openai_error}")
+                print(f"🔍 Error type: {type(openai_error)}")
+                print(f"🔍 Error details: {str(openai_error)}")
+                
                 # Return a helpful error message instead of crashing
                 return QuestionResponse(
-                    answer=f"I found relevant content but encountered an issue generating the response. Error: {str(openai_error)}",
+                    answer=f"I found relevant content but encountered an issue generating the response. The search found content about: {', '.join([s['title'] for s in sources[:3]])}. Please try rephrasing your question.",
                     confidence=0.0,
                     sources=sources,
                     response_time=(datetime.now() - start_time).total_seconds()
