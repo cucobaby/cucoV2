@@ -87,7 +87,7 @@ class CanvasAIAssistant {
                             🔍 Auto-Detect Content Types
                         </button>
                         <button id="analyze-page-btn" class="ai-feature-btn">
-                            � Upload Page to Knowledge Base
+                            📄 Analyze Entire Page
                         </button>
                     </div>
                     <div id="content-selection-area" class="content-selection-area"></div>
@@ -117,96 +117,53 @@ class CanvasAIAssistant {
 
     async analyzeCurrentPage() {
         const resultDiv = document.getElementById('analysis-result');
-        resultDiv.innerHTML = '<div class="ai-loading">🔄 Extracting and uploading content...</div>';
+        resultDiv.innerHTML = '<div class="ai-loading">🔄 Analyzing content...</div>';
         
         try {
-            console.log('🤖 Starting comprehensive content upload...');
-            
-            // Extract comprehensive page content using our enhanced method
+            // Extract page content
             const content = this.extractPageContent();
             
-            if (!content || content.trim().length < 50) {
-                throw new Error('No significant content found on this page');
-            }
-            
-            // Get page title for the upload
-            const pageTitle = document.title || 'Canvas Page';
-            const contentType = this.detectContentType();
-            
-            console.log(`📤 Uploading content: "${pageTitle}" (${content.length} characters)`);
-            
-            // Upload to knowledge base using ingest-content endpoint
-            const response = await fetch(`${API_BASE_URL}/ingest-content`, {
+            const response = await fetch(`${API_BASE_URL}/analyze-content`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    title: pageTitle,
                     content: content,
-                    source: 'canvas_chrome_extension',
-                    url: window.location.href,
-                    content_type: contentType,
-                    course_id: this.extractCourseId(),
-                    timestamp: new Date().toISOString()
+                    source: 'canvas_page',
+                    url: window.location.href
                 })
             });
             
             if (!response.ok) {
-                if (response.status === 404) {
-                    throw new Error('API endpoint not found - service may be starting up. Please try again in a moment.');
-                } else {
-                    const errorText = await response.text();
-                    throw new Error(`Upload failed: ${response.status} - ${errorText}`);
-                }
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const result = await response.json();
             
-            console.log('✅ Content uploaded successfully:', result);
-            
-            // Show success with detailed information
             resultDiv.innerHTML = `
                 <div class="ai-analysis-result">
-                    <h5>✅ Content Successfully Uploaded</h5>
-                    <div class="upload-details">
-                        <p><strong>📄 Title:</strong> ${pageTitle}</p>
-                        <p><strong>📊 Chunks Created:</strong> ${result.chunks_created || 1}</p>
-                        <p><strong>📚 Total Documents:</strong> ${result.total_content_items || 'N/A'}</p>
-                        <p><strong>⏱️ Processing Time:</strong> ${result.processing_time ? (result.processing_time * 1000).toFixed(0) + 'ms' : 'N/A'}</p>
-                        <p><strong>� Content Length:</strong> ${content.length.toLocaleString()} characters</p>
-                        <p><strong>🔗 Content Type:</strong> ${contentType}</p>
-                    </div>
+                    <h5>📊 Analysis Summary</h5>
+                    <p>${result.summary || 'Content analyzed successfully'}</p>
                     
-                    <div class="upload-success-actions">
-                        <p><em>Your content is now available for AI questions!</em></p>
-                        <small>Use the "Ask AI" feature below to test questions about this content.</small>
-                    </div>
+                    ${result.key_concepts ? `
+                        <h5>🔑 Key Concepts</h5>
+                        <ul>
+                            ${result.key_concepts.map(concept => `<li>${concept}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+                    
+                    ${result.difficulty_level ? `
+                        <p><strong>Difficulty:</strong> ${result.difficulty_level}</p>
+                    ` : ''}
                 </div>
             `;
-            
-            // Show notification
-            this.showNotification(
-                `✅ "${pageTitle}" added to knowledge base (${result.chunks_created || 1} chunks)`, 
-                'success'
-            );
-            
         } catch (error) {
-            console.error('❌ Content upload error:', error);
+            console.error('Analysis error:', error);
             resultDiv.innerHTML = `
                 <div class="ai-error">
-                    <h5>❌ Upload Failed</h5>
-                    <p>${error.message}</p>
-                    <details>
-                        <summary>Troubleshooting Tips</summary>
-                        <ul>
-                            <li>Make sure you're on a Canvas page with content</li>
-                            <li>Check that the API service is running</li>
-                            <li>Try refreshing the page and trying again</li>
-                            <li>Ensure the page has loaded completely</li>
-                        </ul>
-                    </details>
-                    <small>Check browser console for technical details</small>
+                    ❌ Analysis failed: ${error.message}
+                    <br><small>Check console for details</small>
                 </div>
             `;
         }
@@ -269,253 +226,32 @@ class CanvasAIAssistant {
     }
 
     extractPageContent() {
-        console.log('🔍 Extracting comprehensive page content...');
-        
-        let extractedContent = {
-            title: '',
-            headers: [],
-            mainContent: '',
-            metadata: {}
-        };
-        
-        // 1. Extract page title and main heading
-        extractedContent.title = document.title || '';
-        
-        // Find the main page heading
-        const mainHeadings = document.querySelectorAll('h1, .page-title, .assignment-title, .quiz-header h1, .discussion-title h1');
-        if (mainHeadings.length > 0) {
-            extractedContent.title = mainHeadings[0].innerText.trim() || extractedContent.title;
-        }
-        
-        // 2. Extract all headers (h1-h6) for structure
-        const allHeaders = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-        extractedContent.headers = Array.from(allHeaders).map(h => ({
-            level: h.tagName.toLowerCase(),
-            text: h.innerText.trim()
-        })).filter(h => h.text.length > 0);
-        
-        // 3. Comprehensive content extraction with priority-based approach
-        const contentSelectors = [
-            // PRIMARY CONTENT AREAS (highest priority)
-            {
-                selector: '.user_content',
-                priority: 1,
-                description: 'Main Canvas user content'
-            },
-            {
-                selector: '.show-content',
-                priority: 1,
-                description: 'Canvas show content area'
-            },
-            {
-                selector: '.assignment-description .user_content',
-                priority: 1,
-                description: 'Assignment descriptions'
-            },
-            {
-                selector: '.quiz-description .user_content',
-                priority: 1,
-                description: 'Quiz descriptions'
-            },
-            {
-                selector: '.discussion-section .user_content',
-                priority: 1,
-                description: 'Discussion content'
-            },
-            
-            // SECONDARY CONTENT AREAS
-            {
-                selector: '.content-wrap',
-                priority: 2,
-                description: 'Canvas content wrapper'
-            },
-            {
-                selector: '.ic-Layout-contentMain',
-                priority: 2,
-                description: 'Canvas main layout content'
-            },
-            {
-                selector: '.course-content',
-                priority: 2,
-                description: 'Course content area'
-            },
-            {
-                selector: 'main[role="main"]',
-                priority: 2,
-                description: 'Main content area'
-            },
-            {
-                selector: '.page-content',
-                priority: 2,
-                description: 'Page content area'
-            },
-            
-            // SPECIFIC CANVAS CONTENT TYPES
-            {
-                selector: '.wiki-page-content',
-                priority: 1,
-                description: 'Wiki page content'
-            },
-            {
-                selector: '.module-sequence-footer-content',
-                priority: 3,
-                description: 'Module sequence content'
-            },
-            {
-                selector: '.announcement-content',
-                priority: 1,
-                description: 'Announcement content'
-            },
-            {
-                selector: '.syllabus-content',
-                priority: 1,
-                description: 'Syllabus content'
-            }
+        // Extract text content from Canvas page
+        const contentAreas = [
+            '.show-content',
+            '.content-wrap',
+            '.ic-Layout-contentMain',
+            '.user_content',
+            '.course-content',
+            'main',
+            '#content'
         ];
         
-        let contentParts = [];
-        let foundPrimaryContent = false;
+        let content = '';
         
-        // Extract content in priority order
-        for (const {selector, priority, description} of contentSelectors.sort((a, b) => a.priority - b.priority)) {
-            const elements = document.querySelectorAll(selector);
-            
-            for (const element of elements) {
-                if (element && element.innerText && element.innerText.trim().length > 50) {
-                    const text = element.innerText.trim();
-                    
-                    // Avoid duplicate content
-                    const isDuplicate = contentParts.some(part => 
-                        part.text.includes(text.substring(0, 100)) || 
-                        text.includes(part.text.substring(0, 100))
-                    );
-                    
-                    if (!isDuplicate) {
-                        contentParts.push({
-                            source: description,
-                            text: text,
-                            priority: priority,
-                            length: text.length
-                        });
-                        
-                        if (priority === 1) foundPrimaryContent = true;
-                        
-                        console.log(`✅ Found content from: ${description} (${text.length} chars)`);
-                    }
-                }
+        for (const selector of contentAreas) {
+            const element = document.querySelector(selector);
+            if (element) {
+                content += element.innerText + '\n';
             }
         }
         
-        // 4. Fallback: comprehensive page scan if no primary content found
-        if (!foundPrimaryContent || contentParts.length === 0) {
-            console.log('⚠️ No primary content found, using comprehensive scan...');
-            
-            // Remove scripts, styles, and navigation elements
-            const elementsToIgnore = document.querySelectorAll('script, style, nav, .navigation, .breadcrumb, .header, .footer, .sidebar');
-            const ignoredElements = new Set(elementsToIgnore);
-            
-            // Get all text from body, excluding ignored elements
-            const allTextElements = document.querySelectorAll('p, div, span, td, li, dd, dt');
-            
-            for (const element of allTextElements) {
-                // Skip if element or its parent is in ignored list
-                let isIgnored = false;
-                let parent = element;
-                while (parent && !isIgnored) {
-                    if (ignoredElements.has(parent)) {
-                        isIgnored = true;
-                    }
-                    parent = parent.parentElement;
-                }
-                
-                if (!isIgnored && element.innerText && element.innerText.trim().length > 20) {
-                    const text = element.innerText.trim();
-                    
-                    // Check if this text is not already included
-                    const isDuplicate = contentParts.some(part => 
-                        part.text.includes(text) || text.includes(part.text.substring(0, 100))
-                    );
-                    
-                    if (!isDuplicate) {
-                        contentParts.push({
-                            source: 'comprehensive scan',
-                            text: text,
-                            priority: 4,
-                            length: text.length
-                        });
-                    }
-                }
-            }
+        // Fallback to page title and basic content
+        if (!content.trim()) {
+            content = document.title + '\n' + document.body.innerText.slice(0, 5000);
         }
         
-        // 5. Combine all content
-        extractedContent.mainContent = contentParts
-            .sort((a, b) => a.priority - b.priority) // Sort by priority
-            .map(part => part.text)
-            .join('\n\n');
-        
-        // 6. Extract metadata
-        extractedContent.metadata = {
-            url: window.location.href,
-            courseId: this.extractCourseId(),
-            contentType: this.detectContentType(),
-            wordCount: extractedContent.mainContent.split(/\s+/).length,
-            characterCount: extractedContent.mainContent.length,
-            extractedSources: contentParts.map(p => p.source),
-            timestamp: new Date().toISOString()
-        };
-        
-        // 7. Build final content string with structure
-        let finalContent = '';
-        
-        // Add title
-        if (extractedContent.title) {
-            finalContent += `TITLE: ${extractedContent.title}\n\n`;
-        }
-        
-        // Add headers outline
-        if (extractedContent.headers.length > 0) {
-            finalContent += 'CONTENT STRUCTURE:\n';
-            extractedContent.headers.forEach(header => {
-                const indent = '  '.repeat(parseInt(header.level.charAt(1)) - 1);
-                finalContent += `${indent}${header.text}\n`;
-            });
-            finalContent += '\n';
-        }
-        
-        // Add main content
-        finalContent += 'MAIN CONTENT:\n';
-        finalContent += extractedContent.mainContent;
-        
-        console.log(`📊 Content extraction complete:
-        - Title: ${extractedContent.title}
-        - Headers: ${extractedContent.headers.length}
-        - Content sources: ${extractedContent.metadata.extractedSources.length}
-        - Word count: ${extractedContent.metadata.wordCount}
-        - Character count: ${extractedContent.metadata.characterCount}`);
-        
-        return finalContent;
-    }
-    
-    extractCourseId() {
-        const urlMatch = window.location.href.match(/\/courses\/(\d+)/);
-        return urlMatch ? urlMatch[1] : null;
-    }
-    
-    detectContentType() {
-        const url = window.location.href;
-        
-        if (url.includes('/assignments/')) return 'assignment';
-        if (url.includes('/quizzes/')) return 'quiz';
-        if (url.includes('/discussion_topics/')) return 'discussion';
-        if (url.includes('/pages/')) return 'page';
-        if (url.includes('/modules/')) return 'module';
-        if (url.includes('/announcements/')) return 'announcement';
-        if (url.includes('/syllabus')) return 'syllabus';
-        if (url.includes('/grades')) return 'gradebook';
-        if (url.includes('/files/')) return 'file';
-        
-        return 'page';
+        return content.slice(0, 10000); // Limit content size
     }
 
     enhanceCanvasPages() {

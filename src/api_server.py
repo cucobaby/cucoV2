@@ -125,15 +125,55 @@ async def ingest_content(request: ContentIngestRequest):
                 metadata={"description": "Canvas course content for AI assistant"}
             )
         
-        # Create content chunks
-        content_chunks = [request.content]
-        if len(request.content) > 1000:
-            # Simple chunking for large content
-            chunk_size = 800
-            content_chunks = [
-                request.content[i:i + chunk_size]
-                for i in range(0, len(request.content), chunk_size)
-            ]
+        # Enhanced content chunking for better search performance
+        content_chunks = []
+        
+        if len(request.content) <= 1200:
+            # Small content - store as single chunk
+            content_chunks = [request.content]
+        else:
+            # Large content - intelligent chunking
+            # First, try to split by sections/paragraphs
+            sections = request.content.split('\n\n')
+            current_chunk = ""
+            
+            for section in sections:
+                # If adding this section would make chunk too large, save current chunk
+                if len(current_chunk) + len(section) > 1000 and current_chunk:
+                    content_chunks.append(current_chunk.strip())
+                    current_chunk = section
+                else:
+                    current_chunk += "\n\n" + section if current_chunk else section
+            
+            # Add the last chunk
+            if current_chunk.strip():
+                content_chunks.append(current_chunk.strip())
+            
+            # If we still have chunks that are too large, split them further
+            final_chunks = []
+            for chunk in content_chunks:
+                if len(chunk) <= 1200:
+                    final_chunks.append(chunk)
+                else:
+                    # Split large chunks by sentences or fixed size
+                    sentences = chunk.split('. ')
+                    sub_chunk = ""
+                    
+                    for sentence in sentences:
+                        if len(sub_chunk) + len(sentence) > 1000 and sub_chunk:
+                            final_chunks.append(sub_chunk.strip() + '.')
+                            sub_chunk = sentence
+                        else:
+                            sub_chunk += ". " + sentence if sub_chunk else sentence
+                    
+                    if sub_chunk.strip():
+                        final_chunks.append(sub_chunk.strip())
+            
+            content_chunks = final_chunks
+        
+        print(f"📝 Content split into {len(content_chunks)} chunks")
+        for i, chunk in enumerate(content_chunks):
+            print(f"   Chunk {i+1}: {len(chunk)} characters")
         
         # Store in ChromaDB
         content_id = str(uuid.uuid4())

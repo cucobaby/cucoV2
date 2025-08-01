@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Extension Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .test-case { margin: 10px 0; }
+        .error-content { color: red; }
+        .valid-content { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Chrome Extension Content Validation Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Cases for Content Validation</h2>
+        
+        <div class="test-case error-content">
+            <h3>Invalid Content Examples (should be filtered out):</h3>
+            <p>You need to have JavaScript enabled to view this content.</p>
+            <p>JavaScript is disabled in your browser.</p>
+            <p>Error occurred while loading the page.</p>
+            <p>Loading...</p>
+            <p>Please wait</p>
+        </div>
+        
+        <div class="test-case valid-content">
+            <h3>Valid Canvas Content Examples:</h3>
+            <p><strong>Assignment:</strong> Complete the reading for Chapter 5 and submit your reflection paper.</p>
+            <p><strong>Discussion:</strong> Participate in the forum about machine learning applications in healthcare.</p>
+            <p><strong>Quiz:</strong> Take the midterm quiz covering lectures 1-8. Due date: Friday, 11:59 PM. Points: 50</p>
+            <p><strong>Course Module:</strong> Introduction to Data Science - Learning objectives include understanding statistical analysis and data visualization techniques.</p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Canvas-like Content Structure</h2>
+        <div class="user_content">
+            <h2>Assignment Instructions</h2>
+            <p>This assignment requires you to analyze the provided dataset and create visualizations. Please submit your work by the due date.</p>
+            <ul>
+                <li>Requirements: Python, pandas, matplotlib</li>
+                <li>Points possible: 100</li>
+                <li>Due date: Next Monday</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // Test script to simulate Chrome extension content validation
+        console.log('Testing Chrome Extension Content Validation');
+        
+        // Simulate the isValidContent function
+        function isValidContent(content) {
+            if (!content || typeof content !== 'string' || content.trim().length < 50) {
+                return false;
+            }
+            
+            const errorPatterns = [
+                /you need to have javascript enabled/i,
+                /javascript is disabled/i,
+                /enable javascript/i,
+                /error.*occurred/i,
+                /loading\.\.\./i,
+                /please wait/i
+            ];
+            
+            const contentLower = content.toLowerCase();
+            for (const pattern of errorPatterns) {
+                if (pattern.test(contentLower)) {
+                    console.warn('Invalid content detected:', pattern.toString());
+                    return false;
+                }
+            }
+            
+            const goodContentPatterns = [
+                /assignment/i, /discussion/i, /reading/i, /course/i, /lesson/i,
+                /chapter/i, /quiz/i, /exam/i, /homework/i, /project/i,
+                /syllabus/i, /instructions/i, /requirements/i, /objective/i,
+                /learning/i, /submit/i, /due date/i, /points/i, /grade/i
+            ];
+            
+            const hasEducationalContent = goodContentPatterns.some(pattern => pattern.test(contentLower));
+            const words = content.split(/\s+/).filter(word => word.length > 2);
+            const hasGoodTextDensity = words.length >= 20;
+            
+            return hasEducationalContent || (hasGoodTextDensity && content.length > 200);
+        }
+        
+        // Test the validation function
+        const testCases = [
+            "You need to have JavaScript enabled to view this content.",
+            "Assignment: Complete the reading for Chapter 5 and submit your reflection paper with analysis of the key concepts covered in the lecture. This assignment is worth 50 points and is due next Friday.",
+            "Loading...",
+            "Discussion: Participate in the forum about machine learning applications in healthcare. Share your thoughts on the ethical implications and potential benefits.",
+            "Error occurred while loading the page."
+        ];
+        
+        testCases.forEach((testCase, index) => {
+            const isValid = isValidContent(testCase);
+            console.log(`Test Case ${index + 1}: ${isValid ? 'VALID' : 'INVALID'} - "${testCase.substring(0, 50)}..."`);
+        });
+    </script>
+</body>
+</html>
