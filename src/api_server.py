@@ -267,10 +267,25 @@ async def ask_question(request: QuestionRequest):
                 
                 print(f"✅ API key found: {api_key[:8]}...")
                 
-                # Simple, clean OpenAI client initialization - no extra parameters
-                openai_client = openai.OpenAI(api_key=api_key)
+                # Railway-safe OpenAI client initialization
+                # Clear any proxy-related environment variables that might interfere
+                original_proxies = {}
+                proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']
+                for var in proxy_vars:
+                    if var in os.environ:
+                        original_proxies[var] = os.environ[var]
+                        del os.environ[var]
                 
-                print(f"✅ OpenAI client initialized successfully")
+                try:
+                    # Initialize with minimal parameters to avoid proxy issues
+                    openai_client = openai.OpenAI(api_key=api_key)
+                    print(f"✅ OpenAI client initialized successfully")
+                    
+                finally:
+                    # Restore proxy environment variables
+                    for var, value in original_proxies.items():
+                        os.environ[var] = value
+                
                 print(f"📝 Generating answer for question: {request.question[:50]}...")
                 
                 # Generate response
@@ -292,13 +307,51 @@ async def ask_question(request: QuestionRequest):
                 print(f"🔍 Error type: {type(openai_error)}")
                 print(f"🔍 Error details: {str(openai_error)}")
                 
-                # Return a helpful error message instead of crashing
-                return QuestionResponse(
-                    answer=f"I found relevant content but encountered an issue generating the response. The search found content about: {', '.join([s['title'] for s in sources[:3]])}. Please try rephrasing your question.",
-                    confidence=0.0,
-                    sources=sources,
-                    response_time=(datetime.now() - start_time).total_seconds()
-                )
+                # Try fallback approach with direct API call
+                try:
+                    print(f"🔄 Trying fallback OpenAI approach...")
+                    import httpx
+                    
+                    # Direct API call bypassing client initialization issues
+                    headers = {
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    }
+                    
+                    payload = {
+                        "model": "gpt-3.5-turbo",
+                        "messages": [
+                            {"role": "system", "content": "You are an AI assistant helping students with their course materials. Answer questions based only on the provided context."},
+                            {"role": "user", "content": f"Question: {request.question}\n\nContext from course materials:\n{context}\n\nPlease provide a helpful answer based on the course materials."}
+                        ],
+                        "max_tokens": 500,
+                        "temperature": 0.7
+                    }
+                    
+                    with httpx.Client() as client:
+                        api_response = client.post(
+                            "https://api.openai.com/v1/chat/completions",
+                            headers=headers,
+                            json=payload,
+                            timeout=30
+                        )
+                        
+                        if api_response.status_code == 200:
+                            result = api_response.json()
+                            answer = result["choices"][0]["message"]["content"]
+                            print(f"✅ Fallback OpenAI call successful")
+                        else:
+                            raise Exception(f"API call failed: {api_response.status_code} - {api_response.text}")
+                            
+                except Exception as fallback_error:
+                    print(f"❌ Fallback also failed: {fallback_error}")
+                    # Return a helpful error message instead of crashing
+                    return QuestionResponse(
+                        answer=f"I found relevant content but encountered an issue generating the response. The search found content about: {', '.join([s['title'] for s in sources[:3]])}. Please try rephrasing your question.",
+                        confidence=0.0,
+                        sources=sources,
+                        response_time=(datetime.now() - start_time).total_seconds()
+                    )
             
             return QuestionResponse(
                 answer=answer,
