@@ -209,15 +209,30 @@ async def ask_question(request: QuestionRequest):
         try:
             collection = client.get_collection("canvas_content")
             
+            # Check if collection has any documents
+            doc_count = collection.count()
+            print(f"📊 Collection has {doc_count} documents")
+            
+            if doc_count == 0:
+                return QuestionResponse(
+                    answer="I don't have any course materials uploaded yet. Please upload some content using the 🤖 buttons on Canvas pages first.",
+                    confidence=0.0,
+                    sources=[],
+                    response_time=(datetime.now() - start_time).total_seconds()
+                )
+            
             # Search for relevant content
+            print(f"🔍 Searching for: '{request.question}'")
             results = collection.query(
                 query_texts=[request.question],
-                n_results=min(5, collection.count())
+                n_results=min(5, doc_count)
             )
             
-            if not results['documents'][0]:
+            print(f"📝 Search results: {len(results['documents'][0]) if results['documents'][0] else 0} documents found")
+            
+            if not results['documents'][0] or len(results['documents'][0]) == 0:
                 return QuestionResponse(
-                    answer="I don't have any relevant course materials for your question. Please upload relevant content using the 🤖 buttons first.",
+                    answer="I couldn't find any relevant course materials for your question. Try asking about the topics that have been uploaded.",
                     confidence=0.0,
                     sources=[],
                     response_time=(datetime.now() - start_time).total_seconds()
