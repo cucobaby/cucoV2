@@ -292,11 +292,11 @@ async def ask_question(request: QuestionRequest):
                 response = openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": "You are an AI assistant helping students with their course materials. Answer questions based only on the provided context."},
-                        {"role": "user", "content": f"Question: {request.question}\n\nContext from course materials:\n{context}\n\nPlease provide a helpful answer based on the course materials."}
+                        {"role": "system", "content": "You are a strict document-based AI assistant. You must ONLY answer questions using information that is explicitly provided in the context below. If the context does not contain the information needed to answer the question, you must say 'I cannot find that information in the uploaded documents.' Do NOT use any general knowledge or information not present in the provided context."},
+                        {"role": "user", "content": f"Question: {request.question}\n\nContext from uploaded documents:\n{context}\n\nAnswer this question using ONLY the information provided in the context above. If the context doesn't contain relevant information, say so clearly."}
                     ],
                     max_tokens=500,
-                    temperature=0.7
+                    temperature=0.3
                 )
                 
                 answer = response.choices[0].message.content
@@ -321,11 +321,11 @@ async def ask_question(request: QuestionRequest):
                     payload = {
                         "model": "gpt-3.5-turbo",
                         "messages": [
-                            {"role": "system", "content": "You are an AI assistant helping students with their course materials. Answer questions based only on the provided context."},
-                            {"role": "user", "content": f"Question: {request.question}\n\nContext from course materials:\n{context}\n\nPlease provide a helpful answer based on the course materials."}
+                            {"role": "system", "content": "You are a strict document-based AI assistant. You must ONLY answer questions using information that is explicitly provided in the context below. If the context does not contain the information needed to answer the question, you must say 'I cannot find that information in the uploaded documents.' Do NOT use any general knowledge or information not present in the provided context."},
+                            {"role": "user", "content": f"Question: {request.question}\n\nContext from uploaded documents:\n{context}\n\nAnswer this question using ONLY the information provided in the context above. If the context doesn't contain relevant information, say so clearly."}
                         ],
                         "max_tokens": 500,
-                        "temperature": 0.7
+                        "temperature": 0.3
                     }
                     
                     with httpx.Client() as client:
