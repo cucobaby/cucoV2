@@ -243,48 +243,39 @@ async def ask_question(request: QuestionRequest):
             # Generate answer with OpenAI
             try:
                 import openai
+                print(f"🔧 Initializing OpenAI client...")
+                
+                # Simple, reliable OpenAI client initialization
                 openai_client = openai.OpenAI(
                     api_key=os.getenv("OPENAI_API_KEY")
                 )
-            except Exception as e:
-                print(f"⚠️ OpenAI client initialization failed: {e}")
-                # Try alternative initialization
-                try:
-                    import openai
-                    openai.api_key = os.getenv("OPENAI_API_KEY")
-                    # Use older style client
-                    response_text = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
-                        messages=[
-                            {"role": "system", "content": "You are an AI assistant helping students with their course materials. Answer questions based only on the provided context."},
-                            {"role": "user", "content": f"Question: {request.question}\n\nContext from course materials:\n{context}\n\nPlease provide a helpful answer based on the course materials."}
-                        ],
-                        max_tokens=500
-                    )
-                    answer = response_text.choices[0].message.content
-                    
-                    return QuestionResponse(
-                        answer=answer,
-                        confidence=0.8,
-                        sources=sources,
-                        response_time=(datetime.now() - start_time).total_seconds()
-                    )
-                except Exception as e2:
-                    print(f"⚠️ Fallback OpenAI client also failed: {e2}")
-                    raise HTTPException(status_code=500, detail=f"Question processing failed: {str(e2)}")
-            
-            # Use new style client
-            response = openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are an AI assistant helping students with their course materials. Answer questions based only on the provided context."},
-                    {"role": "user", "content": f"Question: {request.question}\n\nContext from course materials:\n{context}\n\nPlease provide a helpful answer based on the course materials."}
-                ],
-                max_tokens=500,
-                temperature=0.7
-            )
-            
-            answer = response.choices[0].message.content
+                
+                print(f"✅ OpenAI client initialized successfully")
+                print(f"📝 Generating answer for question: {request.question[:50]}...")
+                
+                # Generate response
+                response = openai_client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are an AI assistant helping students with their course materials. Answer questions based only on the provided context."},
+                        {"role": "user", "content": f"Question: {request.question}\n\nContext from course materials:\n{context}\n\nPlease provide a helpful answer based on the course materials."}
+                    ],
+                    max_tokens=500,
+                    temperature=0.7
+                )
+                
+                answer = response.choices[0].message.content
+                print(f"✅ OpenAI response generated successfully")
+                
+            except Exception as openai_error:
+                print(f"❌ OpenAI processing failed: {openai_error}")
+                # Return a helpful error message instead of crashing
+                return QuestionResponse(
+                    answer=f"I found relevant content but encountered an issue generating the response. Error: {str(openai_error)}",
+                    confidence=0.0,
+                    sources=sources,
+                    response_time=(datetime.now() - start_time).total_seconds()
+                )
             
             return QuestionResponse(
                 answer=answer,
