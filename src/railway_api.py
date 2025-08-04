@@ -265,6 +265,64 @@ async def ask_question(request: QuestionRequest):
         print(f"❌ Question processing error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Question processing failed: {str(e)}")
 
+# --- List Knowledge Base Documents Endpoint ---
+@app.get("/list-documents")
+async def list_documents():
+    """List all documents in the knowledge base"""
+    try:
+        import chromadb
+        chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
+        
+        if not os.path.exists(chroma_path):
+            return {
+                "status": "success",
+                "documents": [],
+                "count": 0,
+                "message": "Knowledge base is empty"
+            }
+        
+        # Initialize ChromaDB client
+        client = chromadb.PersistentClient(path=chroma_path)
+        
+        try:
+            collection = client.get_collection("canvas_content")
+            
+            # Get all documents with metadata
+            results = collection.get(include=["metadatas"])
+            
+            # Extract document information
+            documents = []
+            if results and results.get('metadatas'):
+                for i, metadata in enumerate(results['metadatas']):
+                    doc_info = {
+                        "title": metadata.get('title', 'Untitled Document'),
+                        "source": metadata.get('source', 'unknown'),
+                        "timestamp": metadata.get('timestamp', ''),
+                        "content_type": metadata.get('content_type', 'page'),
+                        "url": metadata.get('url', '')
+                    }
+                    documents.append(doc_info)
+            
+            return {
+                "status": "success",
+                "documents": documents,
+                "count": len(documents),
+                "message": f"Found {len(documents)} documents in knowledge base"
+            }
+            
+        except Exception as collection_error:
+            print(f"Collection error: {collection_error}")
+            return {
+                "status": "success",
+                "documents": [],
+                "count": 0,
+                "message": "Knowledge base is empty (no collection found)"
+            }
+            
+    except Exception as e:
+        print(f"❌ List documents error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list documents: {str(e)}")
+
 # --- Clear Knowledge Base Endpoint ---
 @app.delete("/clear-knowledge-base")
 async def clear_knowledge_base():
