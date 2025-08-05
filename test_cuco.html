@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Ask Cuco Functionality</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .question-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .ask-cuco-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .ask-cuco-btn:hover {
+            background: linear-gradient(135deg, #ff5252 0%, #d84315 100%);
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            min-height: 50px;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .success {
+            border-left: 4px solid #ff6b6b;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffeaa7 10%, #fff5f5 100%);
+        }
+        .error {
+            background: #ffe6e6;
+            border-left: 4px solid #ff4444;
+            color: #cc0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Test Ask Cuco Functionality</h1>
+        <p>This page tests the "Ask Cuco" feature that queries your uploaded Study Guide content.</p>
+        
+        <div class="test-section">
+            <h3>🧬 Test Nucleus Questions</h3>
+            <p>These questions should work since you uploaded Study Guide 2 with nucleus content:</p>
+            
+            <div style="margin-bottom: 20px;">
+                <input type="text" class="question-input" id="question1" value="What is the function of the nucleus?" placeholder="Ask Cuco a question...">
+                <button class="ask-cuco-btn" onclick="askCuco('question1', 'result1')">🤖 Ask Cuco</button>
+                <div class="result" id="result1">Ready to ask Cuco...</div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <input type="text" class="question-input" id="question2" value="What are the main components of the nucleus?" placeholder="Ask Cuco a question...">
+                <button class="ask-cuco-btn" onclick="askCuco('question2', 'result2')">🤖 Ask Cuco</button>
+                <div class="result" id="result2">Ready to ask Cuco...</div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <input type="text" class="question-input" id="question3" value="What is the nucleolus?" placeholder="Ask Cuco a question...">
+                <button class="ask-cuco-btn" onclick="askCuco('question3', 'result3')">🤖 Ask Cuco</button>
+                <div class="result" id="result3">Ready to ask Cuco...</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔬 Custom Question</h3>
+            <p>Ask your own question about the uploaded content:</p>
+            
+            <input type="text" class="question-input" id="customQuestion" placeholder="Type your question here..." style="margin-bottom: 10px;">
+            <button class="ask-cuco-btn" onclick="askCuco('customQuestion', 'customResult')">🤖 Ask Cuco</button>
+            <div class="result" id="customResult">Ready to ask Cuco...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Test Results Summary</h3>
+            <div id="testSummary">
+                <p>Questions tested: <span id="questionCount">0</span></p>
+                <p>Successful responses: <span id="successCount">0</span></p>
+                <p>Errors: <span id="errorCount">0</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://cucov2-production.up.railway.app';
+        let questionCount = 0;
+        let successCount = 0;
+        let errorCount = 0;
+
+        async function askCuco(questionInputId, resultDivId) {
+            const questionInput = document.getElementById(questionInputId);
+            const resultDiv = document.getElementById(resultDivId);
+            const question = questionInput.value.trim();
+            
+            if (!question) {
+                resultDiv.innerHTML = '<div class="error">Please enter a question for Cuco</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="loading">🤖 Cuco is thinking...</div>';
+            resultDiv.className = 'result';
+            
+            questionCount++;
+            updateTestSummary();
+            
+            try {
+                console.log(`❓ ASKING CUCO: "${question}"`);
+                
+                const response = await fetch(`${API_BASE_URL}/ask-question`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        source: 'test_page'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                console.log(`💡 CUCO'S RESPONSE:`, result);
+                
+                // Enhanced display
+                let sourcesHtml = '';
+                if (result.sources && result.sources.length > 0) {
+                    sourcesHtml = `
+                        <div style="margin-top: 10px; padding: 8px; background: rgba(255, 107, 107, 0.1); border-radius: 4px;">
+                            <strong>📚 Sources used:</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px;">
+                                ${result.sources.map(source => 
+                                    `<li style="font-size: 12px;">${source.title || 'Untitled Document'}</li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+                resultDiv.innerHTML = `
+                    <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 8px;">🤖 Cuco's Answer:</div>
+                    <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #ffcccb; margin-bottom: 8px;">
+                        ${result.answer || result.response || 'Sorry, I couldn\'t find an answer to that question.'}
+                    </div>
+                    ${result.confidence ? `
+                        <div style="text-align: center; margin: 5px 0;">
+                            <small style="background: rgba(255, 107, 107, 0.1); padding: 2px 6px; border-radius: 8px; font-size: 11px;">
+                                Confidence: ${result.confidence}
+                            </small>
+                        </div>
+                    ` : ''}
+                    ${sourcesHtml}
+                `;
+                resultDiv.className = 'result success';
+                
+                successCount++;
+                updateTestSummary();
+                
+            } catch (error) {
+                console.error('❌ Cuco question error:', error);
+                resultDiv.innerHTML = `
+                    <div style="color: #cc0000; font-weight: bold;">❌ Cuco encountered an error</div>
+                    <div style="margin-top: 5px; font-size: 12px;">
+                        ${error.message}
+                    </div>
+                `;
+                resultDiv.className = 'result error';
+                
+                errorCount++;
+                updateTestSummary();
+            }
+        }
+        
+        function updateTestSummary() {
+            document.getElementById('questionCount').textContent = questionCount;
+            document.getElementById('successCount').textContent = successCount;
+            document.getElementById('errorCount').textContent = errorCount;
+        }
+
+        // Add Enter key support for custom question
+        document.getElementById('customQuestion').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                askCuco('customQuestion', 'customResult');
+            }
+        });
+    </script>
+</body>
+</html>

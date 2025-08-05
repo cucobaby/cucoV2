@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Canvas AI Test",
+  "version": "1.0.0",
+  "description": "Minimal test extension",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.instructure.com/*",
+        "https://*.canvas.com/*"
+      ],
+      "js": ["test-content.js"]
+    }
+  ]
+}

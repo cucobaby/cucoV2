@@ -21,6 +21,19 @@ chrome.runtime.onInstalled.addListener((details) => {
             url: chrome.runtime.getURL('popup.html')
         });
     }
+    
+    // Add context menu for selected text
+    chrome.contextMenus.create({
+        id: 'canvas-ai-analyze',
+        title: '🤖 Analyze with Canvas AI',
+        contexts: ['selection']
+    });
+    
+    chrome.contextMenus.create({
+        id: 'canvas-ai-question',
+        title: '❓ Ask Canvas AI about this',
+        contexts: ['selection']
+    });
 });
 
 // Handle extension icon click
@@ -85,22 +98,6 @@ async function healthCheck() {
         };
     }
 }
-
-// Context menu setup
-chrome.runtime.onInstalled.addListener(() => {
-    // Add context menu for selected text
-    chrome.contextMenus.create({
-        id: 'canvas-ai-analyze',
-        title: '🤖 Analyze with Canvas AI',
-        contexts: ['selection']
-    });
-    
-    chrome.contextMenus.create({
-        id: 'canvas-ai-question',
-        title: '❓ Ask Canvas AI about this',
-        contexts: ['selection']
-    });
-});
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {

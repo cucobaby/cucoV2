@@ -1,0 +1,47 @@
+TITLE: Study Guide 4: Protein Structure
+
+CONTENT STRUCTURE:
+  Study Guide 4: Protein Structure
+    Primary Structure
+    Secondary Structure
+    Tertiary Structure
+    Quaternary Structure
+
+MAIN CONTENT:
+
+Study Guide 4: Protein Structure
+
+Primary Structure
+The primary structure of a protein refers to the linear sequence of amino acids in the polypeptide chain. This sequence is determined by the genetic code and forms the foundation for all higher levels of protein structure. The primary structure is held together by peptide bonds (covalent bonds) between adjacent amino acids.
+
+Secondary Structure
+Secondary structure refers to local folding patterns within the polypeptide chain, stabilized by hydrogen bonds between the backbone atoms (not the side chains). The two most common types of secondary structure are:
+
+Alpha Helices: Right-handed spiral structures where the backbone forms a helix, with hydrogen bonds forming between the carbonyl oxygen of one amino acid and the amide hydrogen of an amino acid four residues away.
+
+Beta Sheets: Extended strand-like structures where adjacent strands are held together by hydrogen bonds between backbone atoms. Beta sheets can be parallel (strands run in the same direction) or antiparallel (strands run in opposite directions).
+
+Tertiary Structure
+Tertiary structure describes the overall three-dimensional shape of a single polypeptide chain. It results from interactions between amino acid side chains (R groups) that may be far apart in the primary sequence but close in the folded structure. Forces stabilizing tertiary structure include:
+
+- Hydrogen bonds between side chains
+- Ionic bonds (salt bridges) between charged side chains
+- Van der Waals forces between nonpolar side chains
+- Disulfide bonds between cysteine residues
+
+Quaternary Structure
+Quaternary structure refers to the arrangement of multiple polypeptide chains (subunits) in proteins that contain more than one chain. Examples include hemoglobin (4 subunits) and antibodies (4 subunits). The same types of interactions that stabilize tertiary structure also hold quaternary structures together.
+
+Protein Folding and Function
+The specific three-dimensional structure of a protein determines its function. Misfolded proteins can lead to diseases such as Alzheimer's, Parkinson's, and Creutzfeldt-Jakob disease. Chaperone proteins assist in proper protein folding.
+
+Denaturation
+Denaturation is the process by which proteins lose their natural structure due to external factors such as heat, pH changes, or chemical agents. Denatured proteins typically lose their biological activity.
+
+Key Points to Remember:
+- Primary structure: amino acid sequence
+- Secondary structure: local folding (alpha helices, beta sheets)
+- Tertiary structure: overall 3D shape of one chain
+- Quaternary structure: arrangement of multiple chains
+- Structure determines function
+- Proper folding is essential for protein activity
