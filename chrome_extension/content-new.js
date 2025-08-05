@@ -125,7 +125,15 @@ class CanvasAIAssistant {
             ">
                 <div style="padding: 15px;">
                     <h4 style="margin: 0 0 10px 0; color: #495057; font-size: 14px;">📚 Knowledge Base Documents</h4>
-                    <div id="documents-list" style="font-size: 13px; color: #6c757d;">
+                    <div id="documents-list" style="
+                        font-size: 13px; 
+                        color: #6c757d;
+                        max-height: 200px;
+                        overflow-y: auto;
+                        scrollbar-width: thin;
+                        scrollbar-color: #cbd5e0 #f7fafc;
+                        border-radius: 4px;
+                    ">
                         Loading documents...
                     </div>
                 </div>
@@ -185,6 +193,29 @@ class CanvasAIAssistant {
         
         document.body.appendChild(panel);
         
+        // Add custom scrollbar styles for the documents list
+        if (!document.getElementById('ai-panel-scrollbar-styles')) {
+            const style = document.createElement('style');
+            style.id = 'ai-panel-scrollbar-styles';
+            style.textContent = `
+                #documents-list::-webkit-scrollbar {
+                    width: 6px;
+                }
+                #documents-list::-webkit-scrollbar-track {
+                    background: #f7fafc;
+                    border-radius: 3px;
+                }
+                #documents-list::-webkit-scrollbar-thumb {
+                    background: #cbd5e0;
+                    border-radius: 3px;
+                }
+                #documents-list::-webkit-scrollbar-thumb:hover {
+                    background: #a0aec0;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
         // Add event listeners
         panel.querySelector('#close-panel').addEventListener('click', () => panel.remove());
         panel.querySelector('#upload-btn').addEventListener('click', () => this.uploadContent());
@@ -230,6 +261,13 @@ class CanvasAIAssistant {
             `;
             
             console.log('✅ Upload successful:', result);
+            
+            // Auto-refresh knowledge base if it's currently expanded
+            const kbSection = document.getElementById('knowledge-base-section');
+            if (kbSection && kbSection.style.maxHeight !== '0px' && kbSection.style.maxHeight !== '') {
+                console.log('🔄 Auto-refreshing knowledge base...');
+                await this.loadKnowledgeBaseDocuments();
+            }
             
         } catch (error) {
             console.error('❌ Upload failed:', error);
@@ -328,7 +366,7 @@ class CanvasAIAssistant {
         } else {
             // Expand and load documents
             viewBtn.textContent = '📚 Hide Knowledge Base';
-            kbSection.style.maxHeight = '300px';
+            kbSection.style.maxHeight = '280px';
             kbSection.style.padding = '0';
             await this.loadKnowledgeBaseDocuments();
         }
@@ -348,7 +386,50 @@ class CanvasAIAssistant {
                 headers: { 'Content-Type': 'application/json' }
             });
             
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            if (!response.ok) {
+                // If endpoint doesn't exist yet, show a helpful temporary message
+                if (response.status === 404) {
+                    documentsList.innerHTML = `
+                        <div style="
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            padding: 15px;
+                            border-radius: 8px;
+                            text-align: center;
+                            margin: 10px 0;
+                        ">
+                            <div style="font-size: 24px; margin-bottom: 8px;">🚀</div>
+                            <div style="font-weight: bold; margin-bottom: 5px;">Knowledge Base Viewer</div>
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 10px;">
+                                Track and manage your uploaded content
+                            </div>
+                            <div style="font-size: 11px; opacity: 0.8; line-height: 1.4;">
+                                This feature is currently deploying to our servers.<br>
+                                For now, you can still upload content and ask questions!<br>
+                                The viewer will be available shortly.
+                            </div>
+                        </div>
+                        <div style="
+                            background: #f8f9fa;
+                            border: 1px solid #e9ecef;
+                            border-radius: 6px;
+                            padding: 12px;
+                            margin-top: 10px;
+                        ">
+                            <div style="font-weight: 500; color: #495057; margin-bottom: 5px; font-size: 12px;">
+                                💡 How it works:
+                            </div>
+                            <ul style="margin: 0; padding-left: 15px; font-size: 11px; color: #6c757d; line-height: 1.4;">
+                                <li>Upload content using the "📤 Add Content" button above</li>
+                                <li>Ask questions using the "🤖 Ask Cuco" section</li>
+                                <li>Soon: View all uploaded documents here with details</li>
+                            </ul>
+                        </div>
+                    `;
+                    return;
+                }
+                throw new Error(`HTTP ${response.status}`);
+            }
             
             const result = await response.json();
             
@@ -363,6 +444,7 @@ class CanvasAIAssistant {
                 
                 result.documents.forEach((doc, index) => {
                     const timestamp = doc.timestamp ? new Date(doc.timestamp).toLocaleDateString() : 'Unknown date';
+                    const chunkInfo = doc.chunk_count > 1 ? ` • 📦 ${doc.chunk_count} chunks` : '';
                     documentsHtml += `
                         <div style="
                             padding: 8px 10px; 
@@ -376,7 +458,7 @@ class CanvasAIAssistant {
                                 📄 ${doc.title}
                             </div>
                             <div style="color: #6c757d; font-size: 11px;">
-                                📅 ${timestamp} • 🔗 ${doc.content_type || 'page'}
+                                📅 ${timestamp} • 🔗 ${doc.content_type || 'page'}${chunkInfo}
                             </div>
                         </div>
                     `;
@@ -399,12 +481,54 @@ class CanvasAIAssistant {
             
         } catch (error) {
             console.error('❌ Failed to load documents:', error);
-            documentsList.innerHTML = `
-                <div style="color: #dc3545; text-align: center; padding: 10px;">
-                    ❌ Failed to load documents<br>
-                    <small>${error.message}</small>
-                </div>
-            `;
+            
+            // Handle 404 (endpoint not deployed yet) vs other errors
+            if (error.message.includes('404')) {
+                documentsList.innerHTML = `
+                    <div style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 15px;
+                        border-radius: 8px;
+                        text-align: center;
+                        margin: 10px 0;
+                    ">
+                        <div style="font-size: 24px; margin-bottom: 8px;">🚀</div>
+                        <div style="font-weight: bold; margin-bottom: 5px;">Knowledge Base Viewer</div>
+                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 10px;">
+                            Track and manage your uploaded content
+                        </div>
+                        <div style="font-size: 11px; opacity: 0.8; line-height: 1.4;">
+                            This feature is currently deploying to our servers.<br>
+                            For now, you can still upload content and ask questions!<br>
+                            The viewer will be available shortly.
+                        </div>
+                    </div>
+                    <div style="
+                        background: #f8f9fa;
+                        border: 1px solid #e9ecef;
+                        border-radius: 6px;
+                        padding: 12px;
+                        margin-top: 10px;
+                    ">
+                        <div style="font-weight: 500; color: #495057; margin-bottom: 5px; font-size: 12px;">
+                            💡 How it works:
+                        </div>
+                        <ul style="margin: 0; padding-left: 15px; font-size: 11px; color: #6c757d; line-height: 1.4;">
+                            <li>Upload content using the "� Add Content" button above</li>
+                            <li>Ask questions using the "🤖 Ask Cuco" section</li>
+                            <li>Soon: View all uploaded documents here with details</li>
+                        </ul>
+                    </div>
+                `;
+            } else {
+                documentsList.innerHTML = `
+                    <div style="color: #dc3545; text-align: center; padding: 10px;">
+                        ❌ Failed to load documents<br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+            }
         }
     }
 }

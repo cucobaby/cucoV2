@@ -313,18 +313,36 @@ async def list_documents():
             # Get all documents with metadata
             results = collection.get(include=["metadatas"])
             
-            # Extract document information
-            documents = []
+            # Group chunks by document (title + url combination)
+            unique_documents = {}
             if results and results.get('metadatas'):
-                for i, metadata in enumerate(results['metadatas']):
-                    doc_info = {
-                        "title": metadata.get('title', 'Untitled Document'),
-                        "source": metadata.get('source', 'unknown'),
-                        "timestamp": metadata.get('timestamp', ''),
-                        "content_type": metadata.get('content_type', 'page'),
-                        "url": metadata.get('url', '')
-                    }
-                    documents.append(doc_info)
+                for metadata in results['metadatas']:
+                    title = metadata.get('title', 'Untitled Document')
+                    url = metadata.get('url', '')
+                    timestamp = metadata.get('timestamp', '')
+                    
+                    # Create a unique key for each document
+                    doc_key = f"{title}|{url}"
+                    
+                    if doc_key not in unique_documents:
+                        unique_documents[doc_key] = {
+                            "title": title,
+                            "source": metadata.get('source', 'unknown'),
+                            "timestamp": timestamp,
+                            "content_type": metadata.get('content_type', 'page'),
+                            "url": url,
+                            "chunk_count": 1
+                        }
+                    else:
+                        # Increment chunk count for this document
+                        unique_documents[doc_key]["chunk_count"] += 1
+                        # Keep the earliest timestamp if available
+                        if timestamp and (not unique_documents[doc_key]["timestamp"] or timestamp < unique_documents[doc_key]["timestamp"]):
+                            unique_documents[doc_key]["timestamp"] = timestamp
+            
+            # Convert to list and sort by timestamp (newest first)
+            documents = list(unique_documents.values())
+            documents.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
             
             return {
                 "status": "success",
