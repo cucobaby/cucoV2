@@ -1,5 +1,5 @@
 """
-Railway-optimized API server with defensive ChromaDB handling
+Railway-optimized API server with defensive ChromaDB handling - v2.1 with Knowledge Base Viewer
 """
 import os
 import tempfile
@@ -13,7 +13,7 @@ from pydantic import BaseModel
 import uvicorn
 
 # Railway-safe health check
-app = FastAPI(title="Canvas AI Assistant API - Railway", version="2.0")
+app = FastAPI(title="Canvas AI Assistant API - Railway", version="2.1-kb-viewer")
 
 # CORS configuration
 app.add_middleware(
