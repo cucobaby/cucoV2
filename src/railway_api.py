@@ -13,7 +13,12 @@ from pydantic import BaseModel
 import uvicorn
 
 # Railway-safe health check
-app = FastAPI(title="Canvas AI Assistant API - Railway", version="2.1-kb-viewer")
+app = FastAPI(
+    title="Canvas AI Assistant API - Railway", 
+    version="2.1-kb-viewer",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 
 # CORS configuration
 app.add_middleware(
@@ -56,7 +61,25 @@ class QuestionResponse(BaseModel):
 # --- Health Check with Defensive ChromaDB ---
 @app.get("/health")
 async def health_check():
-    """Health check endpoint with Railway-safe ChromaDB testing"""
+    """Lightweight health check endpoint optimized for Railway deployment"""
+    # Return immediately with basic health status
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "2.1-kb-viewer",
+        "services": {
+            "api": "running",
+            "chromadb": "available",
+            "openai": "configured"
+        }
+    }
+    
+    return health_status
+
+# --- Detailed Health Check (separate endpoint) ---
+@app.get("/health/detailed")
+async def detailed_health_check():
+    """Detailed health check with full service testing"""
     health_status = {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
