@@ -197,13 +197,13 @@ async def ingest_content(request: ContentIngestRequest):
 # --- Simplified Question Answering ---
 @app.post("/ask-question", response_model=QuestionResponse)
 async def ask_question(request: QuestionRequest):
-    """Railway-optimized question answering"""
+    """Railway-optimized question answering with robust error handling"""
     start_time = datetime.now()
     
     try:
         print(f"❓ Processing question: {request.question}")
         
-        # Import ChromaDB
+        # Check if we have any content first
         import chromadb
         chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
         
@@ -234,9 +234,6 @@ async def ask_question(request: QuestionRequest):
                     response_time=(datetime.now() - start_time).total_seconds()
                 )
             
-            # Use OpenAI for answer generation
-            import openai
-            
             # Prepare context from search results
             context_parts = []
             sources = []
@@ -251,30 +248,57 @@ async def ask_question(request: QuestionRequest):
             
             context = "\n\n".join(context_parts)
             
-            # Generate answer with OpenAI
-            openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            # Try OpenAI, but fallback if it fails
+            try:
+                import openai
+                openai_api_key = os.getenv("OPENAI_API_KEY")
+                
+                if not openai_api_key:
+                    raise Exception("OpenAI API key not configured")
+                
+                # Generate answer with OpenAI
+                openai_client = openai.OpenAI(api_key=openai_api_key)
+                
+                response = openai_client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are an AI assistant helping students with their course materials. Answer questions based only on the provided context."},
+                        {"role": "user", "content": f"Question: {request.question}\n\nContext from course materials:\n{context}\n\nPlease provide a helpful answer based on the course materials."}
+                    ],
+                    max_tokens=500,
+                    temperature=0.7
+                )
+                
+                answer = response.choices[0].message.content
+                
+                return QuestionResponse(
+                    answer=answer,
+                    confidence=0.8,
+                    sources=sources,
+                    response_time=(datetime.now() - start_time).total_seconds()
+                )
+                
+            except Exception as openai_error:
+                print(f"⚠️ OpenAI failed: {openai_error}")
+                
+                # Fallback to simple keyword-based response
+                answer = f"Based on your course materials, I found {len(sources)} relevant sections about '{request.question}'. Here's what I found:\n\n"
+                
+                for i, (doc, source) in enumerate(zip(results['documents'][0][:2], sources[:2])):
+                    answer += f"{i+1}. From {source['title']}: {doc[:200]}...\n\n"
+                
+                answer += "Note: For more detailed AI-powered answers, please ensure the OpenAI integration is properly configured."
+                
+                return QuestionResponse(
+                    answer=answer,
+                    confidence=0.6,
+                    sources=sources,
+                    response_time=(datetime.now() - start_time).total_seconds()
+                )
             
-            response = openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are an AI assistant helping students with their course materials. Answer questions based only on the provided context."},
-                    {"role": "user", "content": f"Question: {request.question}\n\nContext from course materials:\n{context}\n\nPlease provide a helpful answer based on the course materials."}
-                ],
-                max_tokens=500,
-                temperature=0.7
-            )
-            
-            answer = response.choices[0].message.content
-            
-            return QuestionResponse(
-                answer=answer,
-                confidence=0.8,
-                sources=sources,
-                response_time=(datetime.now() - start_time).total_seconds()
-            )
-            
-        except Exception as e:
-            if "does not exist" in str(e):
+        except Exception as collection_error:
+            print(f"❌ ChromaDB collection error: {collection_error}")
+            if "does not exist" in str(collection_error):
                 return QuestionResponse(
                     answer="No course materials have been uploaded yet. Please use the 🤖 buttons on Canvas pages to upload content first.",
                     confidence=0.0,
@@ -282,11 +306,18 @@ async def ask_question(request: QuestionRequest):
                     response_time=(datetime.now() - start_time).total_seconds()
                 )
             else:
-                raise e
+                raise collection_error
                 
     except Exception as e:
         print(f"❌ Question processing error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Question processing failed: {str(e)}")
+        
+        # Return a helpful error message instead of HTTP 500
+        return QuestionResponse(
+            answer=f"I'm sorry, I encountered an error while processing your question. This might be due to a temporary server issue. Please try again in a moment. If the problem persists, the issue might be with the AI service configuration.",
+            confidence=0.0,
+            sources=[],
+            response_time=(datetime.now() - start_time).total_seconds()
+        )
 
 # --- List Knowledge Base Documents Endpoint ---
 @app.get("/list-documents")
