@@ -60,7 +60,7 @@ async def health_check():
     health_status = {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "version": "2.0-railway",
+        "version": "2.1-kb-viewer",
         "services": {}
     }
     
