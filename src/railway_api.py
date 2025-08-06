@@ -63,76 +63,108 @@ def format_educational_response(question: str, unique_results: List, sources: Li
     if not unique_results:
         return "No relevant information found in your uploaded materials. Please upload course content related to this topic."
     
-    # Extract and filter relevant content more intelligently
+    # Extract and prioritize relevant content with smarter filtering
     relevant_content = []
-    for doc, metadata in unique_results[:6]:  # Get more content chunks for better coverage
+    vocabulary_content = []
+    
+    for doc, metadata in unique_results[:8]:  # Get more content chunks for better coverage
         content = doc.strip()
         
-        # Filter out incomplete fragments and study guide references
-        if (len(content) > 50 and  # Require longer content chunks
-            not content.startswith(("1.", "2.", "3.", "4.", "5.", "•", "-")) and  # Skip numbered lists without context
-            not content.lower().startswith(("see sg", "draw", "your diagram")) and  # Skip study guide instructions
-            not content.endswith("...") and  # Skip truncated content
-            "study guide" not in content.lower()[:50]):  # Skip study guide references
+        if len(content) < 50:  # Skip very short content
+            continue
+            
+        # Categorize content types
+        content_lower = content.lower()
+        
+        # Skip only truly unhelpful fragments
+        if (content.startswith(("see sg", "draw", "your diagram")) or
+            content.endswith("...") or
+            content.startswith("for practice applying this material")):
+            continue
+        
+        # Prioritize explanatory content over vocabulary lists
+        if any(keyword in content_lower for keyword in [
+            "process", "mechanism", "occurs", "involves", "steps", "during",
+            "enzyme", "protein", "molecule", "reaction", "synthesis"
+        ]):
+            relevant_content.append(content)
+        # Include vocabulary/concept definitions as secondary content
+        elif any(keyword in content_lower for keyword in [
+            "definition", "structure", "function", "role", "consists of"
+        ]):
+            vocabulary_content.append(content)
+        # Include other substantial content
+        elif len(content) > 100:
             relevant_content.append(content)
     
-    if not relevant_content:
-        # If no good content found, be less restrictive but still filter fragments
-        for doc, metadata in unique_results[:6]:
-            content = doc.strip()
-            if len(content) > 80:  # At least require substantial content
-                relevant_content.append(content)
+    # Combine prioritized content
+    all_content = relevant_content + vocabulary_content[:3]  # Limit vocab content
     
-    if not relevant_content:
-        return "The uploaded materials contain only fragmented content for this topic. Please upload more complete course materials or textbook content."
+    if not all_content:
+        return "No relevant information found in your course materials. The content may be too fragmented or focused on learning objectives rather than explanations."
     
-    # Use OpenAI for comprehensive response generation
+    # Use OpenAI for comprehensive response generation with better error handling
     try:
         import openai
-        # Combine more content for better context, prioritizing longer chunks
-        relevant_content.sort(key=len, reverse=True)  # Prioritize longer, more complete content
-        combined_content = "\n\n".join(relevant_content[:4])  # Use top 4 chunks
+        # Prioritize longer, more explanatory content
+        all_content.sort(key=lambda x: (
+            len(x), 
+            # Boost explanatory content
+            10 if any(word in x.lower() for word in ["process", "mechanism", "during", "involves"]) else 0
+        ), reverse=True)
         
-        prompt = f"""You are an educational AI assistant. Based on the course content provided, give a comprehensive and complete explanation for: "{question}"
+        combined_content = "\n\n".join(all_content[:5])  # Use top 5 chunks
+        
+        prompt = f"""You are an educational AI assistant helping a biology student. Based on the course materials provided, create a comprehensive explanation for: "{question}"
 
-Course Content:
-{combined_content[:3500]}
+Course Materials:
+{combined_content[:4000]}
 
 Instructions:
-- Provide a thorough, educational explanation that fully addresses the question
-- Ignore any fragmented text, study guide references, or incomplete sentences
-- Use clear, structured formatting with bullet points or numbered lists where appropriate
-- Synthesize information from multiple content pieces to create a cohesive explanation
-- Include step-by-step processes if the topic involves procedures or mechanisms
-- Define key terms and concepts clearly
-- Keep the response informative, well-organized, and complete (400-600 words)
-- If the content seems fragmented, use your educational knowledge to provide a complete explanation based on the available context"""
+1. Create a complete, educational explanation that fully answers the question
+2. Use the course material as your primary source but synthesize it into a coherent explanation
+3. Structure your response with clear headings and bullet points
+4. Include step-by-step processes if applicable
+5. Define key terms and concepts
+6. Ignore study guide instructions (like "draw", "diagram", "complete quiz") and focus on the actual content
+7. Aim for 400-600 words with clear organization
+8. If the material contains vocabulary lists, incorporate those terms into your explanation naturally
+
+Format your response as a complete educational explanation, not as fragmented study notes."""
 
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        print(f"Calling OpenAI with {len(combined_content)} characters of content...")  # Debug log
+        
         response = client.chat.completions.create(
-            model="gpt-4",  # Use GPT-4 for better synthesis and reasoning
+            model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=1000,  # Increased for more comprehensive responses
-            temperature=0.3  # Slightly higher for better synthesis
+            max_tokens=1200,  # Increased for more comprehensive responses
+            temperature=0.3
         )
         
-        return response.choices[0].message.content.strip()
+        ai_response = response.choices[0].message.content.strip()
+        print(f"OpenAI response received: {len(ai_response)} characters")  # Debug log
+        return ai_response
         
     except Exception as e:
-        print(f"OpenAI formatting error: {e}")
-        # Enhanced fallback response with better content filtering
-        if len(relevant_content) > 0:
-            # Filter and combine the best content pieces
-            filtered_content = []
-            for content in relevant_content[:3]:
-                if len(content) > 100 and not any(fragment in content.lower() for fragment in ["see sg", "draw", "your diagram"]):
-                    filtered_content.append(content)
+        print(f"OpenAI error: {e}")  # Enhanced error logging
+        # Better fallback response with improved content selection
+        if len(all_content) > 0:
+            # Create a more structured fallback response
+            explanatory_content = [content for content in all_content if len(content) > 150][:3]
             
-            if filtered_content:
-                combined = "\n\n".join(filtered_content)
-                return f"Based on your course materials:\n\n{combined[:1200]}"
+            if explanatory_content:
+                combined = "\n\n".join(explanatory_content)
+                return f"""Based on your course materials, here's what I found about {question}:
+
+{combined[:1500]}
+
+Note: This is a direct excerpt from your study materials. For a more comprehensive explanation, please ensure your OpenAI API is configured properly."""
+            else:
+                return f"Found course material related to '{question}' but unable to process it into a comprehensive explanation. Please check that your study materials contain detailed explanations rather than just vocabulary lists or learning objectives."
         
-        return "The content found appears fragmented. Please upload more complete course materials, or try asking a more specific question."
+        return "Unable to generate a response. Please check that your course materials contain sufficient explanatory content about this topic."
 
 # --- Auto-load Knowledge Base ---
 async def load_persistent_knowledge_base():
@@ -485,7 +517,7 @@ async def query_content(request: QueryRequest):
                 timestamp=datetime.now().isoformat()
             )
         
-        # Remove duplicates and sort by relevance, prioritizing quality content
+        # Remove duplicates and prioritize quality content with smarter filtering
         unique_results = []
         seen_content = set()
         
@@ -493,27 +525,23 @@ async def query_content(request: QueryRequest):
             content_key = doc[:150].lower().strip()
             doc_text = doc.strip()
             
-            # More selective filtering for quality content
-            if (content_key not in seen_content and 
-                len(doc_text) > 50 and  # Require longer content
-                not doc_text.lower().startswith(("see sg", "draw", "your diagram")) and  # Skip study guide instructions
-                not doc_text.endswith("...") and  # Skip truncated content
-                "study guide" not in doc_text.lower()[:100]):  # Skip study guide references
-                
-                seen_content.add(content_key)
-                unique_results.append((doc, metadata))
-        
-        # If we don't have enough quality results, be less restrictive
-        if len(unique_results) < 3:
-            for doc, metadata in all_results:
-                content_key = doc[:150].lower().strip()
-                if content_key not in seen_content and len(doc.strip()) > 80:
+            if content_key not in seen_content and len(doc_text) > 40:
+                # Less aggressive filtering - allow more content through
+                if not (doc_text.startswith("for practice applying this material") or
+                        doc_text.startswith("complete the practice quiz") or
+                        doc_text.endswith("...") or
+                        len(doc_text) < 50):
                     seen_content.add(content_key)
                     unique_results.append((doc, metadata))
         
-        # Sort by distance/relevance and content length (longer content often better)
-        unique_results.sort(key=lambda x: (x[1].get('distance', 1.0), -len(x[0])))
-        unique_results = unique_results[:6]  # Get more results for better coverage
+        # Sort by relevance (distance) and content quality
+        unique_results.sort(key=lambda x: (
+            x[1].get('distance', 1.0),  # Primary: relevance
+            -len(x[0]),  # Secondary: longer content preferred
+            # Boost content that looks explanatory
+            -10 if any(word in x[0].lower() for word in ["process", "mechanism", "involves", "occurs"]) else 0
+        ))
+        unique_results = unique_results[:8]  # Get more results for better coverage
         
         # Extract sources
         sources = list(set([metadata['title'] for _, metadata in unique_results]))
