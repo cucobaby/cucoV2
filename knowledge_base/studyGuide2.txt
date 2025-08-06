@@ -1,0 +1,38 @@
+Study Guide 2
+Cell Structure (Lectures 1 and 2)
+At the end of this unit, you should be able to define and/or use the following vocabulary:
+Biology: the study of life
+
+Prokaryotes, eukaryotes, archaea
+Conservation of basic cellular functions
+Cell Biology:
+
+Plasma membrane
+Nucleoid
+Ribosomes
+Nucleus: Nucleolus, Nuclear Pore Complex, Nuclear lamina, Euchromatin, Heterochromatin, NLS sequence, Nucleoplasm
+Endomembrane system: smooth ER, rough ER, cis and trans Golgi, vesicles
+Mitochondria: matrix, inner membrane, intermembrane space
+Chloroplasts: thylakoid lumen, stroma, grana
+Endosymbiont theory
+Lysosomes & vacuoles
+Endocytosis & exocytosis
+Cytoskeleton: actin microfilament and microtubule (may not be covered until lecture 3)
+Motor proteins & vesicle transport (may not be covered until lecture 3)
+ 
+
+When you’re done studying for this unit, you should be able to:
+Appreciate the scale of life, either by ordering the size of known structures or by comparing scale bars on images.
+Decide whether a cell is from a eukaryotic plant, a eukaryotic animal, or a prokaryotic bacterium based on its structure.
+Draw a bacterial, a plant, and an animal cell. In all three drawings, label the location(s) of ribosomes and DNA. When appropriate, your drawing should also include the following: cell wall, nucleoid, nucleus (include structures in bullet above), mitochondria, chloroplast, vacuole, and the components of the endomembrane system.
+In all three of your diagrams, label where the following biological processes could occur: (1) energy production, (2) storage of genetic information and DNA synthesis, (3) transcription (i.e., RNA production from a DNA template), (4) protein synthesis. Recall the function of each eukaryotic organelle and the structures within them (e.g., nucleolus, nuclear pore complex, etc.).
+In your eukaryotic cell drawings, note the path that a trans-membrane or secreted protein would take from the original point of synthesis to its final location (i.e., exocytosis).
+In your eukaryotic cell drawings, note the path of that matter  internalized by endocytosis then degraded would follow.
+Recognize the structure of organelles in a diagram or images from a microscope.
+Predict what would happen to the cell if each organelle was disrupted.
+Visualize how the orientation of the two membrane “faces” would change through the steps of endocytosis or exocytosis.
+Provide evidence that mitochondria and chloroplasts arose through endocytosis of a bacterial cells.
+Contrast the components of the cytoskeleton by (1) name of monomer, (2) the location within the cell, and (3) roles within the cell. (may not be covered until lecture 3)
+ 
+
+For practice applying this material, complete the Practice Quiz 2 and Graded Quiz 2.

@@ -1,0 +1,64 @@
+Study Guide 3
+Molecular Interactions, Amino Acids, Protein Structure (Lectures 3-5)
+At the end of this unit, you should be able to define and/or use the following vocabulary:
+Molecular Interactions:
+
+Units: nanometer (nm) = 10-9 m, micron (µm) = 10-6 m, Angstrom (Å) = 10-10 m
+reactivity, electrons, octet rule
+hydrophobic vs. hydrophilic
+Types of molecular interactions:
+Covalent bonds (polar and non-polar)
+Non-covalent bonds
+Ionic bonds
+Hydrogen bonds: electronegativity, H-bond donor & acceptor
+Van der Waals interaction
+Hydrophobic interactions
+Functional groups (and classes of compounds): hydroxyl (alcohol), aldehyde (aldehyde), keto (ketone), carboxyl (carboxylic acid), amino (amine), phosphate (organic phosphate), sulfhydryl (thiol), methyl
+Types of Macromolecules: Polypeptide (Proteins), Lipids, Nucleic Acids, Polysaccharide (Carbohydrates)
+Monomers and polymers
+Condensation & hydrolysis reactions
+Amino Acids and Protein Structure:
+
+Amino acids: alpha-carbon, amino group, carboxyl group, side chain (R), zwitterion
+classes of R-groups: positively charged (basic), negatively charged (acidic), polar, nonpolar
+trans configuration, L-isomer
+Peptide bond, disulfide bridge
+Protein conformation (i.e., 3D shape)
+Ramachandran diagram
+Levels of protein structure: primary, secondary, tertiary, and quaternary
+Primary structure: peptide bond, sequence of amino acids
+Secondary structure: alpha-helix (3.6 amino acids/turn, 1.5 Å/amino acid); beta-strand; beta-sheet (parallel, anti-parallel, mixed; 3.5 Å/amino acid), beta-turn; hydrogen bonds between main chain components
+Tertiary structure: see SG4
+Quaternary structure: see SG4
+ 
+
+When you’re done studying for this unit, you should be able to:
+ 
+
+Infer details about a biomolecule based on its chemical structure.
+Evaluate chemical structures that contain C, N, O, and P for proper bonding rules (e.g., 4 bonds for C, 3 bonds for N, etc.).
+On a chemical structure of a biomolecule, identify atoms that could participate in hydrogen bonds.
+Recall that in this class, we consider atoms in N-H, C-O, and O-H to have partial charges, but we do not consider atoms in C-H bonds to have partial charges.
+Identify the functional groups listed in the vocab. above within a chemical structure or describe that structure using the classes of organic compounds listed above.
+Rank chemical structures in terms of hydrophobicity.
+Compare the strength of covalent and various non-covalent bonds.
+Predict the product of a hydrolysis or condensation reaction based on reactant molecules’ structures (e.g., predict the product of a condensation reaction between two amino acids).
+List the four major classes of biological macromolecules. For polymers (proteins, nucleic acids, and carbohydrates), match them to their appropriate monomers.
+ 
+
+Describe the structure and function of proteins in living cells.
+Draw the structure of the simplest amino acid, glycine (where the R-group is H) with accurate charges at physiological pH.
+Categorize an R-group as nonpolar (hydrophobic), polar, positively charged (basic), or negatively charged (acidic), or a “special case” when given its structure.
+In a chemical structure of a short peptide, be able to identify the peptide bonds, alpha-carbons, R-groups, hydrogen bond donors/acceptors, and N- and C- termini.
+Predict whether a peptide would be stable in the nonpolar environment of a lipid bilayer based on the polarity of its amino acid R-groups and/or the existence of secondary and tertiary structures.
+Draw a short peptide at physiological pH, labeling the termini and alpha-carbons.
+ 
+
+Contrast the types of interactions that stabilize each of the four levels of protein structure. Also include the groups (e.g., amino, carboxy, carbonyl, R-groups, etc.) which participate in those interactions.
+Describe how alpha-helix and beta-sheet secondary structures stabilize partial charges in the peptide backbone.
+When given a chemical structure of a beta-sheet, classify it as parallel, antiparallel, or mixed.
+Contrast the hydrogen bonding patterns in an alpha-helix, a parallel beta-sheet, and an antiparallel beta-sheet.
+Calculate the length (in angstroms) of an alpha-helix when given the number of amino acids participating in helix or the number of turns in the helix.
+ 
+
+For practice applying this material, complete the Practice Quiz 3 and Graded Quiz 3.

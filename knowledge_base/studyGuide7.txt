@@ -1,0 +1,57 @@
+Study Guide 7
+Intro. to Metabolism, Glycolysis & Fermentation, and Citric Acid Cycle (Lectures 15-17)
+At the end of this unit, you should be able to define and/or use the following vocabulary:
+Metabolism Principles:
+
+phototrophs, chemotrophs
+catabolic pathways, exergonic; anabolic pathways, endergonic
+Energy coupling, ATP (energy “currency”), ATP hydrolysis, gamma phosphate
+ATP, ADP, and AMP; energy charge = ([ATP]+ ½[ADP]) / ([ATP]+ [ADP]+ [AMP])
+loss of electrons, oxidation; gain of electrons, reduction
+electron carriers (NAD+, NADH)
+Catabolic pathway to breakdown glucose: glycolysis, pyruvate oxidation, citric acid cycle, oxidative respiration, ATP production
+Glycolysis:
+
+Stages: energy investment phase (stage 1: 2 ATP in); energy harvesting phase (stage 2: 4 ATP out)
+Molecules: glucose, fructose-1,6-bisphosphate, glyceraldehyde-3-phosphate (GAP), pyruvate
+Enzymes: hexokinase; phosphofructokinase
+Regulation of Glycolysis: regulation of reversible vs. irreversible steps, phosphofructokinase, two ATP binding sites
+Fates of Pyruvate:
+
+Fermentation: lactic acid fermentation, ethanol fermentation, NAD+ replenishment
+Pyruvate Oxidation: requires O2, mitochondrial matrix, acetyl coA, pyruvate dehydrogenase
+Citric Acid Cycle:
+
+Mitochondrion Structure and Function: inner and outer membranes, matrix, intermembrane space, cristae
+acetyl coA (2C), oxaloacetate (4C), citrate (6C), regeneration of oxaloacetate, twice per glucose, NADH, CO2, GTP, FADH2
+ 
+
+When you’re done studying for this unit, you should be able to:
+Contrast how energy & carbon are obtained in plants and animals.
+Compare the outputs and energy requirements of catabolic and anabolic pathways.
+Explain in your own words how ATP can promote an energy-requiring reaction within cells.
+Predict whether an ATP-generating or ATP-utilizing pathway will occur at a faster rate in a cell with a high or low energy charge.
+Rank chemical structures by how oxidized or reduced they are.
+Draw the structures (with carbon numbering) of glycerol, glyceraldehyde, and glycerate.
+Predict a result of an oxidation or reduction reaction involving an alcohol, aldehyde, or carboxylic acid functional group.
+ 
+
+Diagram how chemical energy (ATP) is derived from the sugar glucose. Below are more details about what should be included in the diagram:
+For each process (e.g., glycolysis, pyruvate oxidation, fermentation, etc.), label any occurrences of ATP synthesis, ATP hydrolysis, NAD+ reduction, and NADH oxidation.
+Label where within a cell (prokaryotic and eukaryotic) each process occurs.
+For the glycolysis portion of your diagram, include details in the stages and enzymes portions of the glycolysis vocabulary above. Additionally, be able to place (using their name, but not draw from memory) each of the structures in the "Molecules" section (above) on your diagram. Additionally:
+Summarize the overall purpose of glycolysis in 1-2 sentences.
+Relate free energy change to reactions during the energy-investment and energy-harvesting phases of glycolysis.
+Explain in your own words how glycolysis is regulated through phosphofructokinase. Predict phosphofructokinase activity at different energy charges.
+Predict how specific changes to each pathway (e.g., loss of an enzyme, entry late in the pathway, etc.) would affect the number of ATP produced.
+ 
+
+After glycolysis in your diagram, outline the fates of pyruvate in the presence or absence of oxygen. This should include details in vocabulary list above.
+Given oxygen availability, predict the products of glucose breakdown, and vice-versa (from products, predict oxygen availability).
+Outline the inputs and outputs of the citric acid cycle using the details in the vocabulary list above. Be able to account for the number of carbons during the cycle.
+Explain in your own words why it makes sense that the citric acid cycle is a cycle.
+ 
+
+THIS IS THE LAST FULL STUDY GUIDE FOR EXAM 1*.
+*(Mon.'s material on SG8 will also be on the exam.)
+For practice applying this material, complete the Practice Quiz 7. Due to the timing of the exam, there is no graded quiz for this material.

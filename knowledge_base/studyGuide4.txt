@@ -1,0 +1,44 @@
+Study Guide 4
+Protein Structure & Enzymes (Lectures 6-8)
+At the end of this unit, you should be able to define and/or use the following vocabulary:
+Protein Structure & Techniques to Study Proteins:
+
+Levels of protein structure: primary, secondary, tertiary, and quaternary
+Primary structure: see SG3
+Secondary structure: see SG3
+Tertiary structure: various types of interactions between R-groups; disulfide bridge; salt bridge
+denaturation, renaturation, chaperonins, “Levinthal paradox”, “cumulative selection”
+Quaternary structure: various types of interactions between two separate polypeptide chains
+SDS-PAGE
+reducing agents: beta-mercaptoethanol; urea
+protein purification; types of chromatography: size-exclusion, ion exchange, affinity
+Enzymes
+
+Substrate; product; enzyme
+Enzyme mechanisms: change in free energy (ΔG); thermodynamics vs. kinetics; activation energy (Ea); transition state; active site; induced fit model, lock and key model
+Enzyme kinetics: initial velocity (Vo); KM; Vmax; Michaelis-Menten plot; Lineweaver-Burk plot
+Enzyme regulation: competitive inhibition; noncompetitive inhibition; allosteric regulation, non-protein co-enzymes
+ 
+
+When you’re done studying for this unit, you should be able to:
+Deduce which amino acids are likely to be found at a certain location on a diagram depicting a protein structure containing disulfide bridges, ionic bonds, a beta-turn, and/or an alpha-helix.
+Recall that only cysteine is able to form a covalent, disulfide bridge.
+Recall that oppositely charged groups are attracted to each other through ionic bonds.
+Recall that proline is not typically found in alpha-helices, due to its rigid R-group. Also recall other amino acids that can modify alpha-helix.
+If a particular protein is denatured, predict whether refolding (i.e., renaturation) would likely occur: (1) in a test tube, (2) in a cell containing chaperone proteins. Explain your reasoning.
+Based on a description or diagram of a protein, decide whether it has a quaternary structure.
+Predict which amino acids are likely to be on the exterior of a protein embedded in the nonpolar environment (such as the interior of a lipid bilayer) or on the interior of a protein surrounded by an aqueous solution (such as the cytoplasm).
+Appreciate the role of prions in protein folding and human disease.
+ 
+
+Explain how enzymes enable biochemical reactions to proceed more quickly.
+Compare (e.g., increase, decrease, stay the same) the rate and direction of a biological reaction in the presence and absence of an enzyme.
+Predict the direction that a chemical reaction will proceed when given the change in free energy (+, -, or 0).
+Compare the kinetics (e.g., Km and Vmax) for two enzymes based on data from a Michaelis-Menton or Lineweaver-Burk plot.
+Define Km and Vmax in your own words.
+Sketch a Michaelis-Menten curve when given a Lineweaver-Burk plot, or vice-versa.
+Predict the curve on a Michaelis-Menten or Lineweaver-Burk plot if an inhibitor was added.
+Categorize the type of an enzymatic inhibitor from a Michaelis-Menten or Lineweaver-Burk plot and/or that inhibitor’s structure.
+ 
+
+For practice applying this material, complete the Practice Quiz 4 and Graded Quiz 4.

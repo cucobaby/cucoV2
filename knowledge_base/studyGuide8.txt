@@ -1,0 +1,49 @@
+Study Guide 8
+Oxidative Phosphorylation, and Photosynthesis I (Lectures 18-20)
+At the end of this unit, you should be able to define and/or use the following vocabulary:
+Oxidative Phosphorylation:
+
+electron transport chain, proton pumps (complexes I, II, III, and IV), proton gradient, ATP synthase, NADH/FADH2oxidation; H2O formation; O2 consumption, final electron acceptor
+ATP Synthase
+
+molecular motor; H+; ATP synthesis
+F0 unit: “c” subunit (with aspartic acid), “a” subunit half-channels
+F1 unit: gamma (ɣ) subunit shaft, beta (β) subunit; L, O, and T conformations
+Photosynthesis I:
+
+Chloroplast Structure and Function: inner and outer membranes, thylakoid membrane, stroma, thylakoid lumen
+Light-dependent reactions: electron transport chain, Photosystems II and I, chlorophyll reaction center, ferridoxin (Fd), water oxidation, NADP+ reduction, ATP synthase, ATP production
+Z scheme of electron transport
+Light-independent reactions: Calvin cycle,
+carbon fixation, CO2 (1C), RuBP (5C), Rubisco Enzyme
+carbon reduction, NADPH, ATP, glyceraldehyde-3-phosphate (3C), glucose
+carbon acceptor regeneration (RuBP)
+ 
+
+When you’re done studying for this unit, you should be able to:
+(Numbering continued from SG7) Diagram how chemical energy (ATP) is derived from the sugar glucose. Below are more details about what should be included in the diagram:
+See SG7 for the objectives related to glycolysis, fates of pyruvate, and the citric acid cycle.
+Outline the inputs, outputs, and steps of oxidative phosphorylation in order to derive ATP from intermediates produced by preceding steps (i.e., glycolysis, etc.) using the details in the vocabulary list above.
+Illustrate a mitochondrion within a plant or animal cell, including internal compartments and membranes. On your drawing, localize the processes of glycolysis, pyruvate oxidation, the citric acid cycle, and the electron transport chain. Also localize: (1) high and low [H+], (2) ATP synthesis, (3) H2O formation, (4) O2 reduction, (5) CO2
+Predict how specific changes to each pathway (e.g., loss of an enzyme, entry late in the pathway, energy charge of a cell etc., absence or O2) might affect the outputs.
+ 
+
+Explain how the structure of ATP synthase allows it to generate ATP from a proton gradient in the mitochondria and chloroplast.
+Recall the function of each of the following structures within ATP synthase: gamma subunit, a subunit, c ring, and beta subunits.
+Visualize the sequence of events that produces ATP from proton movement.
+Recall the sequence of L, O, and T beta subunit conformations, and know what occurs in each confirmation.
+Predict the effect of substituting Asp within the c subunit for another amino acid.
+Predict how the number of c subunits changes the number of ATP produced per H+.
+ 
+
+Diagram how carbon is reduced into sugar in plant cells.
+Write the net chemical reaction for Indicate which are inputs and outputs of “light-dependent” and “light-independent” reactions.
+Recall the steps by which light and water generate oxygen gas and chemical energy (ATP and NADPH) in plants using the details in the vocabulary list above.
+Predict how compounds that disrupt electron transport might impact photosynthesis, when given details about that compound’s mode of action.
+Outline the process by which carbon dioxide is fixed and used to generate glucose, including the energy input (NADPH and ATP) and the enzyme Rubisco. You should be able to keep track of the carbons, so that after 6 turns of the cycle 1 glucose molecule can be synthesized. (Note: Memorizing the chemical structures of intermediates is NOT required for this process in this course.)
+Draw a chloroplast within a plant cell, including internal compartments and membranes. On that drawing, localize the Calvin cycle, water oxidation, NADP+ reduction, the electron transport chain, the proton gradient, and the site of ATP synthesis.
+Compare and contrast features of the electron transport chain, oxidation/reduction of carbon-containing molecules, and electron carriers for glucose breakdown (cellular respiration) and glucose synthesis (photosynthesis).
+ 
+
+EXAM 1 COVERS THE INFORMATION IN RED. The information in black will be covered with Exam 2.
+For practice applying this material, complete the Practice Quiz 8 and Graded Quiz 8.

@@ -1,0 +1,59 @@
+Study Guide 9
+Photosynthesis II, Nucleic Acid Structure, and DNA Replication I (Lectures 21-23)
+At the end of this unit, you should be able to define and/or use the following vocabulary:
+Photosynthesis II and Metabolism Integration:
+
+Light-independent reactions: Calvin cycle,
+carbon fixation, CO2 (1C), RuBP (5C), Rubisco Enzyme
+carbon reduction, NADPH, ATP, glyceraldehyde-3-phosphate (3C), glucose
+carbon acceptor regeneration (RuBP)
+Alternative Pathway for Carbon Fixation during Photosynthesis: photorespiration, Rubulose 1,5-bisphosphate carboxylase/oxygenase activity; C3 vs. C4 plants; mesophyll and bundle sheath cells
+Metabolism Integration: positive and negative feedback regulation of metabolism; fates of sugars from Calvin cycle, cellulose, starch, proteins, lipids, energy status, positive and negative feedback
+Nucleic Acid Structure:
+
+“Central dogma” of molecular biology: replication, DNA (deoxyribonucleic acid), transcription, mRNA, translation, protein
+DNA Monomer Structure:
+Nucleotide:
+sugar: ribose, 2’-deoxyribose
+nitrogenous base: purine, pyrimidine, adenine, guanine, cytosine, thymine, uracil
+phosphate,
+DNA Polymer Structure: DNA double helix, sugar phosphate backbone, 5’→3’ directionality, antiparallel strands, B & A forms
+Chemical interactions within DNA:
+3’-5’ phosphodiester bond between nucleotides,
+Chargaff’s rule, Watson/Crick base pairs, complementary sequence, hydrogen bonding,
+base stacking, hydrophobic interactions
+Higher-order DNA Structure: Major groove, minor groove; supercoiling; chromosome
+ DNA Replication I:
+
+Replication General Mechanism: conservative, semiconservative, and dispersive replication, Meselson-Stahl experiment; DNA polymerase, high fidelity, deoxynucleotide triphosphate (dNTP) primer, 3’OH of deoxyribose, phosphodiester bond formation, 5’→3’ directionality of synthesis
+When you’re done studying for this unit, you should be able to:
+(Photosynthesis numbering continued from SG8) 
+
+Diagram how carbon is reduced into sugar in plant cells.
+Write the net chemical reaction for photosynthesis and indicate which are inputs and outputs of “light-dependent” and “light-independent” reactions.
+Outline the process by which carbon dioxide is fixed and used to generate glucose, including the energy input (NADPH and ATP) and the enzyme Rubisco. You should be able to keep track of the carbons, so that after 6 turns of the cycle 1 glucose molecule can be synthesized. (Note: Memorizing the chemical structures of intermediates is NOT required for this process in this course.)
+Draw a chloroplast within a plant cell, including internal compartments and membranes. On that drawing, localize the Calvin cycle, water oxidation, NADP+ reduction, the electron transport chain, the proton gradient, and the site of ATP synthesis. 
+Compare and contrast features of the electron transport chain, oxidation/reduction of carbon-containing molecules, and electron carriers for glucose breakdown (cellular respiration) and glucose synthesis (photosynthesis).
+Explain in your own words which adaptations in C4 plants allow for greater carbon reduction in hot, dry weather relative to C3 plants.
+Appreciate that products and intermediates of photosynthesis or glucose oxidation can have many fates within an organism.
+ 
+
+___
+
+Describe how genetic information “flows” through the cell.
+Localize where each process of information “flow” occurs in prokaryotes and eukaryotes.
+Appreciate how the structure of the hereditary material, DNA, allows for its functions.
+Summarize the conclusion of the Avery and Griffiths experiments.
+Based on the experimental design (strains used) of Avery and Griffiths experiments predict the results (which mice died) of a proposed experiment. (Your understanding of the experimental design should be at the level that it could include the following terms: Streptococcus pneumonia, R strain, S strain, virulence, genetic transformation, treatments to destroy specific classes of biological molecules)
+Draw a nucleotide monomer and a double-stranded DNA or RNA dinucleotide. Include directionality, hydrogen bonds, and phosphodiester bonds in your diagram. You will need to draw the phosphate and sugar from memory, but you do not need to draw the chemical structure of the nitrogenous base from memory.
+ Draw and number the carbons for the following sugars: ribose, deoxyribose.
+Evaluate a drawing of an existing DNA or RNA dinucleotide for errors.
+Identify the 5’ and 3’ ends of DNA when given text, a chemical structure, or arrow.
+Categorize nitrogenous bases as purines or pyrimidines when given their name or structure.
+When given the nucleotide sequence on one strand of DNA, predict the nucleotides (and directionality) of the complementary strand using Watson/Crick base pairing.
+Compare the strength of A/T and C/G base pairing.
+Recognize the minor and major grooves in DNA, and know which one is more likely to bind to proteins.
+Using diagrams, describe how genetic information within a cell is copied to prepare for cell division.
+1. Summarize the conclusion of the Meselson-Stahl experiment.
+1.1. Based on the experimental design of Meselson and Stahl, be able to predict the results of a proposed experiment over multiple generations assuming different potential mechanisms of replication (e.g., conservative, semi-conservative, dispersive). (Your understanding of the experimental design should be at the level that it could include the following terms: labeling DNA with heavy (15N) and light (14N) isotopes of nitrogen, 15N & 14N controls, centrifugation, density, E. coli.)
+For practice applying this material, complete the Practice Quiz 9 and Graded Quiz 9.

@@ -134,11 +134,97 @@ Instructions:
         
         return "The content found appears fragmented. Please upload more complete course materials, or try asking a more specific question."
 
+# --- Auto-load Knowledge Base ---
+async def load_persistent_knowledge_base():
+    """Load study guides from knowledge_base folder on startup"""
+    try:
+        import chromadb
+        chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
+        
+        client = chromadb.PersistentClient(path=chroma_path)
+        
+        try:
+            collection = client.get_collection("canvas_content")
+        except:
+            collection = client.create_collection("canvas_content")
+        
+        # Check if knowledge base is already loaded
+        existing_count = collection.count()
+        if existing_count > 0:
+            print(f"Knowledge base already has {existing_count} documents, skipping auto-load")
+            return
+        
+        knowledge_base_path = Path("knowledge_base")
+        if not knowledge_base_path.exists():
+            knowledge_base_path = Path("../knowledge_base")  # Alternative path for deployment
+        
+        if not knowledge_base_path.exists():
+            print("No knowledge_base folder found")
+            return
+        
+        loaded_count = 0
+        all_documents = []
+        all_metadatas = []
+        all_ids = []
+        
+        # Load all .txt files from knowledge_base folder
+        for txt_file in knowledge_base_path.glob("*.txt"):
+            try:
+                with open(txt_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                if len(content.strip()) < 50:
+                    continue
+                
+                # Chunk the content
+                chunks = chunk_text(content, max_chunk_size=800, overlap=100)
+                
+                for i, chunk in enumerate(chunks):
+                    if len(chunk.strip()) > 20:
+                        doc_id = f"{txt_file.stem}_chunk_{i}_{uuid.uuid4().hex[:8]}"
+                        all_documents.append(chunk)
+                        all_metadatas.append({
+                            "title": txt_file.stem.replace('_', ' ').title(),
+                            "source": "persistent_knowledge_base",
+                            "content_type": "study_guide",
+                            "url": "",
+                            "chunk_index": i,
+                            "timestamp": datetime.now().isoformat(),
+                            "content_id": txt_file.stem
+                        })
+                        all_ids.append(doc_id)
+                
+                loaded_count += 1
+                print(f"Loaded: {txt_file.name}")
+                
+            except Exception as e:
+                print(f"Error loading {txt_file.name}: {e}")
+                continue
+        
+        # Add all documents to ChromaDB
+        if all_documents:
+            collection.add(
+                documents=all_documents,
+                metadatas=all_metadatas,
+                ids=all_ids
+            )
+            print(f"Auto-loaded {loaded_count} study guides with {len(all_documents)} chunks to knowledge base")
+        else:
+            print("No valid content found in knowledge_base folder")
+            
+    except Exception as e:
+        print(f"Error auto-loading knowledge base: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize knowledge base on startup"""
+    await load_persistent_knowledge_base()
+
 # --- Health Check ---
 @app.get("/")
 async def root():
     """Simple root endpoint"""
-    return {"status": "Canvas AI Assistant API", "version": "4.0.0"}
+    return {"status": "Canvas AI Assistant API", "version": "4.1.0"}
 
 @app.get("/health")
 def health_check():

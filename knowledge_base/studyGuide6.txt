@@ -1,0 +1,51 @@
+Study Guide 6
+Signaling II & Carbohydrates (Lectures 12-14)
+At the end of this unit, you should be able to define and/or use the following vocabulary:
+Signaling II (Lectures 12-13):
+
+(See SG5 for other terms related to signaling.)
+
+Signals: cortisol, epinephrine, growth factor
+Receptors: transmembrane receptors, G-protein coupled receptor (GPCR)*; protein kinase receptor; dimerization
+Transducers: heterotrimeric G-proteins, monomeric G-proteins, Protein Kinase A (PKA)
+Other Signaling components: transcription factors 
+Turning signals off: intrinsic GTPase activity, ligand dissociation, receptor inactivation, breakdown of second messengers (phosphodiesterase), balancing kinase and phosphatase activity
+Leptin, Leptin receptor, satiety, obesity; wild-type, mutant
+Carbohydrates (Lectures 14):
+
+(CH2O)n, sugars, mono-, di-, poly-saccharides, hydroxyl and aldehyde**
+linear vs. ring forms, alpha (
+) (down) vs. beta (
+) (up) hydroxyl orientation at C1
+glycosidic bond, hydrolysis and condensation reactions, alpha and beta linkages
+glycogen, starch, cellulose
+phototroph, chemotroph
+*Sometimes GPCR's are referred to by their structure, 7TM (7-pass transmembrane receptor).
+
+**These are functional groups that you were asked to memorize in SG3.
+
+When you’re done studying for this unit, you should be able to:
+Diagram a generalized network of reactions by which cells can respond to signals released by other cells (a.k.a. signal transduction pathway) using the following terms: signal, receptor, transducers, cellular response.
+Recall the steps of the pathway by which glucose is released during the fight or flight response (e.g., the epinephrine pathway). Note structure/function relationships for molecules in this pathway.
+Predict how disruption of certain parts of the G-protein regulation cycle would affect G-protein activity.
+Identify the role of second messengers in signal transduction pathways.
+Recall the name and recognize the structure of cAMP the example of a secondary messenger that we described in class.
+Explain how cAMP acts to amplify signaling in the cell.
+Compare and contrast the ways that different signaling pathways can be turned off.
+Decide whether changing the levels/activities of components of a signaling pathway would result in the upregulation or downregulation of that pathway.
+When given a figure or description of a novel signaling pathway, be able to: (1) identify the signal, receptor, second messenger, and cell response; (2) categorize it as one of the three types of pathways that we talked about (those that have intracellular receptors, protein receptor kinase, or 7TM/GPCRs); and (3) predict how disrupting one part of the novel pathway would affect the levels of downstream molecules in the pathway.
+Based on your understanding of the function of signaling components discussed in class, assemble a hypothetical signaling pathway using an appropriate combination of these components.
+ 
+
+Apply reasoning skills modeled in the Leptin/Obesity activity (Lecture 13). Make predictions and inferences about how wild-type and mutant mice respond to treatment with Leptin.
+ 
+
+Identify the role(s) of carbohydrates in living cells.
+Decide whether a molecule is a sugar based on its structure.
+Draw the structure (with carbon numbering) of glucose in its linear and ring forms (alpha and beta configurations).
+Deduce the type of linkage in a polysaccharide based on its chemical structure. (This should include both the carbon numbers and alpha or beta.)
+Predict the result of condensation reaction involving two given carbon atoms in monosaccharides or the result of a hydrolysis reaction involving a disaccharide.
+Contrast the following glucose polymers in terms of their function and linkages between glucose monomers: starch, glycogen, and cellulose.
+ 
+
+For practice applying this material, complete the Practice Quiz 6 and Graded Quiz 6.

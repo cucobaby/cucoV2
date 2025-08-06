@@ -1,0 +1,58 @@
+Study Guide 5
+Lipids & Membranes, Membrane Transport, and Signaling I (Lectures 9-11)
+At the end of this unit, you should be able to define and/or use the following vocabulary:
+Lipids & Membranes:
+
+Types of lipids: triglycerides, fatty acids, cholesterol, steroids
+Triglycerides: glycerol and 3 fatty acids; condensation reactions
+Saturated vs. unsaturated fatty acids
+Phospholipid: 2 fatty acids, glycerol, phosphate, polar group, amphipathic; hydrophobic interactions; lipid bilayer
+Biological Membranes: compartmentalization, selective permeability; asymmetry; proteins, carbohydrates, lipids; Fluid mosaic model
+Integral membrane protein; peripheral membrane protein
+Transport across Membranes:
+
+Plasma membrane (exterior cell membrane)
+Concentration gradient
+Types of transport: passive transport; active transport; ATP; primary active transport; secondary active transport
+Types of transport proteins: carriers, channels, antiporter, symporter, pumps
+Signaling:
+
+Signals: cortisol (more signals will be discussed in future lectures and SG6)
+Intracellular receptors; hydrophobic signal; transcription factor
+Transmembrane receptors; protein kinase receptor; dimerization; 7-transmembrane G-protein coupledreceptor (7-TM/GPCR)
+G-protein; GDP, GTP; GTPase; GDP for GTP exchange; heterotrimeric vs. monomeric
+Phosphorylation; ATP; protein kinase; serine, threonine, tyrosine
+Dephosphorylation: phosphatase
+Second messengers; cAMP
+Signal transducer; adenylyl cyclase*, Protein Kinase A (PKA)
+Signal amplification, spread
+*Adenylyl cyclase goes by many names also including adenyl cyclase and adenylate cyclase
+
+When you’re done studying for this unit, you should be able to:
+Recognize the structure of the following lipids: triglyceride, steroid, and phospholipid. And, recall each of their role(s) within cells.
+Draw the structure of glycerol.
+Label the parts of a phospholipid (e.g., fatty acid, etc.) and state its biological importance.
+Relate the structure of a cell membrane to its biological functions.
+Explain in your own words why phospholipids spontaneously form a lipid bilayer.
+Relate temperature, cholesterol and saturation of fatty acid chains to membrane fluidity.
+Appreciate that biological membranes are dynamic and heterogeneous.
+Predict features of an integral membrane protein’s structure.
+Predict the type of amino acids (nonpolar, polar, and/or charged) you would expect to be facing the exterior and/or interior of a transmembrane protein channel.
+Explain why it is common to have alpha- helices or beta-strand secondary structures in membrane spanning regions of proteins.
+ 
+
+Compare and contrast passive transport, primary active transport, and secondary active transport for the following characteristics: (1) ability to move molecule with or against their concentration gradient, (2) whether it requires integral membrane proteins, (3) whether it requires additional energy (if so, identify the source of the energy).
+Rank the following types of molecules based on their permeability across a lipid bilayer: (1) ions/charged, (2) polar, (3) mostly non-polar.
+Describe the direction of molecule movement and the resulting concentration gradients established by the sodium-potassium pump.
+Sequence of steps required for secondary active transport of glucose through the sodium-glucose co-transporter, beginning with ATP hydrolysis by a sodium-potassium pump.
+When given details about a new example of transport, classify the type of transport (e.g., primary active transport, etc.), and predict how changes (e.g., changing concentration gradient, limiting energy, etc.) would affect transport.
+ 
+
+Diagram a generalized network of reactions by which cells can respond to signals released by other cells (a.k.a. signal transduction pathway) using the following terms: signal, receptor, transducer, cellular response.
+Based on a signal’s structure and your knowledge of membrane permeability, predict whether it will have an intracellular or transmembrane receptor.
+Recall the role(s) of phosphorylation in signal transduction and the enzymes which catalyze the addition and removal of phosphate groups.
+Explain why serine, threonine, and tyrosine are the three amino acids that can be phosphorylated.
+Outline the cycle of activation and inactivation of a G-protein.
+ 
+
+For practice applying this material, complete the Practice Quiz 5 and Graded Quiz 5.
