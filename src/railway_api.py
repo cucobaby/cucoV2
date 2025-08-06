@@ -326,10 +326,22 @@ async def detailed_health_check():
         health_status["services"]["chromadb"] = f"error: {str(e)}"
         health_status["status"] = "degraded"
     
-    # Test OpenAI
+    # Test OpenAI connection
     try:
         import openai
-        health_status["services"]["openai"] = "available"
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            # Simple test call to verify API key works
+            client = openai.OpenAI(api_key=api_key)
+            test_response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": "Say 'API test successful'"}],
+                max_tokens=10,
+                timeout=10
+            )
+            health_status["services"]["openai"] = f"connected (test: {test_response.choices[0].message.content})"
+        else:
+            health_status["services"]["openai"] = "error: No API key found"
     except Exception as e:
         health_status["services"]["openai"] = f"error: {str(e)}"
         health_status["status"] = "degraded"
