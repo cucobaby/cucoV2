@@ -141,28 +141,17 @@ Instructions:
 
 Format your response as a complete educational explanation, not as fragmented study notes."""
 
+        # Fixed OpenAI client initialization
         client = openai.OpenAI(api_key=api_key)
         
         print(f"DEBUG: Calling OpenAI with {len(combined_content)} characters of content...")
-        print(f"DEBUG: Using model: gpt-4")
         
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=1200,
-                temperature=0.3,
-                timeout=30  # Add explicit timeout
-            )
-        except Exception as gpt4_error:
-            print(f"DEBUG: GPT-4 failed ({gpt4_error}), trying GPT-3.5-turbo...")
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=1200,
-                temperature=0.3,
-                timeout=30
-            )
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",  # Use gpt-3.5-turbo instead of gpt-4 for better reliability
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1200,
+            temperature=0.3
+        )
         
         ai_response = response.choices[0].message.content.strip()
         print(f"DEBUG: OpenAI response received: {len(ai_response)} characters")
@@ -336,8 +325,7 @@ async def detailed_health_check():
             test_response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": "Say 'API test successful'"}],
-                max_tokens=10,
-                timeout=10
+                max_tokens=10
             )
             health_status["services"]["openai"] = f"connected (test: {test_response.choices[0].message.content})"
         else:
