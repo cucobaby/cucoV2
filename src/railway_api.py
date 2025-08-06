@@ -99,13 +99,13 @@ def analyze_question_type(question: str) -> str:
     """Determine what type of educational response is needed"""
     q_lower = question.lower()
     
-    if any(phrase in q_lower for phrase in ["what is", "define", "definition of"]):
+    if any(phrase in q_lower for phrase in ["what is", "what are", "define", "definition of", "levels of", "types of", "kinds of", "categories of"]):
         return "definition"
-    elif any(phrase in q_lower for phrase in ["how does", "explain", "why does", "how works"]):
+    elif any(phrase in q_lower for phrase in ["how does", "explain", "why does", "how works", "tell me about"]):
         return "explanation"
     elif any(phrase in q_lower for phrase in ["difference between", "compare", "contrast", "vs"]):
         return "comparison"
-    elif any(phrase in q_lower for phrase in ["process of", "steps", "pathway", "mechanism"]):
+    elif any(phrase in q_lower for phrase in ["process of", "steps", "pathway", "mechanism", "how to"]):
         return "process"
     else:
         return "general"
@@ -116,33 +116,35 @@ def extract_main_topic(question: str) -> str:
     q_lower = question.lower()
     
     # Remove question starters
-    for starter in ["what is", "what are", "define", "explain", "how does", "why does", "tell me about"]:
+    for starter in ["what is", "what are", "define", "explain", "how does", "why does", "tell me about", "tell me the", "what are the"]:
         if starter in q_lower:
             q_lower = q_lower.replace(starter, "").strip()
     
-    # Clean up articles and prepositions
-    for word in ["the", "a", "an", "of", "in", "on", "at", "for"]:
-        q_lower = q_lower.replace(f" {word} ", " ")
+    # Clean up articles and prepositions at start/end only
+    q_lower = q_lower.strip()
+    for word in ["the", "a", "an"]:
+        if q_lower.startswith(word + " "):
+            q_lower = q_lower[len(word)+1:]
+        if q_lower.endswith(" " + word):
+            q_lower = q_lower[:-len(word)-1]
     
-    return q_lower.strip().title()
+    return q_lower.strip().title() if q_lower else "The Question"
 
 def build_definition_response(question: str, topic: str, unique_results: List, sources: List) -> str:
     """Build a definition-focused educational response"""
-    response = "## Definition\n"
+    response = "## Key Information\n"
     
     # Extract definition from course materials
     definitions = extract_definitions_from_content(unique_results, topic)
     
     if definitions:
-        response += f"{definitions[0]}\n\n"
-        
-        if len(definitions) > 1:
-            response += "## Additional Perspectives\n"
-            for i, definition in enumerate(definitions[1:], 2):
-                response += f"**Source {i}**: {definition}\n\n"
-    else:
-        response += "Based on your course materials:\n\n"
-        response += format_course_content(unique_results, sources)
+        for definition in definitions:
+            response += f"• {definition}\n"
+        response += "\n"
+    
+    # Always include detailed course content for context
+    response += "## From Your Course Materials\n"
+    response += format_course_content(unique_results, sources, focus="definition")
     
     return response
 
@@ -209,6 +211,9 @@ def extract_definitions_from_content(unique_results: List, topic: str) -> List[s
     definitions = []
     topic_lower = topic.lower()
     
+    # Keywords to look for based on the topic
+    topic_keywords = topic_lower.split()
+    
     for doc, metadata in unique_results:
         sentences = doc.split('.')
         for sentence in sentences:
@@ -219,11 +224,16 @@ def extract_definitions_from_content(unique_results: List, topic: str) -> List[s
             sentence_lower = sentence.lower()
             
             # Look for definition patterns
-            if (topic_lower in sentence_lower and 
-                any(pattern in sentence_lower for pattern in [" is ", " are ", " refers to", " means", " defined as"])):
+            if (any(keyword in sentence_lower for keyword in topic_keywords) and 
+                any(pattern in sentence_lower for pattern in [" is ", " are ", " refers to", " means", " defined as", " include", " consists of", " composed of"])):
+                definitions.append(sentence + ".")
+            
+            # Also look for list patterns (for things like "levels of protein structure")
+            elif (any(keyword in sentence_lower for keyword in topic_keywords) and 
+                  any(pattern in sentence_lower for pattern in ["primary", "secondary", "tertiary", "quaternary", "first", "second", "third", "fourth", "•", "1.", "2.", "3.", "4."])):
                 definitions.append(sentence + ".")
                 
-    return definitions[:3]  # Return top 3 definitions
+    return definitions[:5]  # Return top 5 definitions
 
 def extract_explanations_from_content(unique_results: List, question: str) -> List[str]:
     """Extract explanatory content"""
