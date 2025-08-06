@@ -20,12 +20,6 @@ from pydantic import BaseModel, Field
 
 # --- FastAPI App ---
 app = FastAPI(title="CucoV2 Educational Assistant API - Clean v2", version="4.1.0")
-# import chromadb - loaded when needed
-# import openai - loaded when needed
-# Document processing imports - loaded when needed
-
-# --- Configuration ---
-app = FastAPI(title="CucoV2 Educational Assistant API - Clean v2", version="4.1.0")
 
 app.add_middleware(
     CORSMiddleware,
