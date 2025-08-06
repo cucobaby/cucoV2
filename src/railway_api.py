@@ -59,74 +59,80 @@ class ContentUploadResponse(BaseModel):
 
 # --- Enhanced Response Generation ---
 def format_educational_response(question: str, unique_results: List, sources: List) -> str:
-    """Generate concise, focused response using OpenAI with enhanced search results"""
+    """Generate comprehensive, well-structured response using OpenAI"""
     if not unique_results:
         return "No relevant information found in your uploaded materials. Please upload course content related to this topic."
     
-    # Enhanced search targeting for specific topics
-    search_terms = []
-    q_lower = question.lower()
-    
-    # Protein structure specific terms
-    if any(term in q_lower for term in ["protein", "structure", "level"]):
-        search_terms.extend(["primary", "secondary", "tertiary", "quaternary"])
-    
-    # Extract most relevant content based on distance/relevance
+    # Extract and filter relevant content more intelligently
     relevant_content = []
-    for doc, metadata in unique_results[:3]:  # Top 3 most relevant
+    for doc, metadata in unique_results[:6]:  # Get more content chunks for better coverage
         content = doc.strip()
-        if len(content) > 50:  # Meaningful content only
-            # Score content by distance if available
-            distance = metadata.get('distance', 1.0)
-            if distance < 0.5:  # High relevance threshold
+        
+        # Filter out incomplete fragments and study guide references
+        if (len(content) > 50 and  # Require longer content chunks
+            not content.startswith(("1.", "2.", "3.", "4.", "5.", "•", "-")) and  # Skip numbered lists without context
+            not content.lower().startswith(("see sg", "draw", "your diagram")) and  # Skip study guide instructions
+            not content.endswith("...") and  # Skip truncated content
+            "study guide" not in content.lower()[:50]):  # Skip study guide references
+            relevant_content.append(content)
+    
+    if not relevant_content:
+        # If no good content found, be less restrictive but still filter fragments
+        for doc, metadata in unique_results[:6]:
+            content = doc.strip()
+            if len(content) > 80:  # At least require substantial content
                 relevant_content.append(content)
     
     if not relevant_content:
-        # Fallback to basic content if no high-relevance found
-        relevant_content = [doc.strip() for doc, _ in unique_results[:1] if len(doc.strip()) > 50]
+        return "The uploaded materials contain only fragmented content for this topic. Please upload more complete course materials or textbook content."
     
-    # Use OpenAI for concise formatting only
-    if relevant_content:
-        try:
-            import openai
-            combined_content = "\n".join(relevant_content[:2])  # Limit content
-            
-            prompt = f"""Based on this course content, provide a direct answer to: "{question}"
+    # Use OpenAI for comprehensive response generation
+    try:
+        import openai
+        # Combine more content for better context, prioritizing longer chunks
+        relevant_content.sort(key=len, reverse=True)  # Prioritize longer, more complete content
+        combined_content = "\n\n".join(relevant_content[:4])  # Use top 4 chunks
+        
+        prompt = f"""You are an educational AI assistant. Based on the course content provided, give a comprehensive and complete explanation for: "{question}"
 
 Course Content:
-{combined_content[:1000]}
+{combined_content[:3500]}
 
-Requirements:
-- Answer the question directly and concisely
-- Use ONLY the provided course content
-- Keep response under 200 words
-- Focus on key facts, not lengthy explanations
-- If the content mentions specific levels or categories, list them clearly"""
+Instructions:
+- Provide a thorough, educational explanation that fully addresses the question
+- Ignore any fragmented text, study guide references, or incomplete sentences
+- Use clear, structured formatting with bullet points or numbered lists where appropriate
+- Synthesize information from multiple content pieces to create a cohesive explanation
+- Include step-by-step processes if the topic involves procedures or mechanisms
+- Define key terms and concepts clearly
+- Keep the response informative, well-organized, and complete (400-600 words)
+- If the content seems fragmented, use your educational knowledge to provide a complete explanation based on the available context"""
 
-            client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=250,
-                temperature=0.3
-            )
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
+            model="gpt-4",  # Use GPT-4 for better synthesis and reasoning
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1000,  # Increased for more comprehensive responses
+            temperature=0.3  # Slightly higher for better synthesis
+        )
+        
+        return response.choices[0].message.content.strip()
+        
+    except Exception as e:
+        print(f"OpenAI formatting error: {e}")
+        # Enhanced fallback response with better content filtering
+        if len(relevant_content) > 0:
+            # Filter and combine the best content pieces
+            filtered_content = []
+            for content in relevant_content[:3]:
+                if len(content) > 100 and not any(fragment in content.lower() for fragment in ["see sg", "draw", "your diagram"]):
+                    filtered_content.append(content)
             
-            return response.choices[0].message.content.strip()
-            
-        except Exception as e:
-            print(f"OpenAI formatting error: {e}")
-            # Fallback to simple response
-            return f"Based on your course materials:\n\n{relevant_content[0][:300]}..."
-    
-    # Simple fallback response
-    response = f"Based on your course materials:\n\n"
-    for i, content in enumerate(relevant_content[:1], 1):
-        response += f"{content.strip()}"
-        if not content.strip().endswith('.'):
-            response += "..."
-        response += "\n"
-    
-    return response.strip()
+            if filtered_content:
+                combined = "\n\n".join(filtered_content)
+                return f"Based on your course materials:\n\n{combined[:1200]}"
+        
+        return "The content found appears fragmented. Please upload more complete course materials, or try asking a more specific question."
 
 # --- Health Check ---
 @app.get("/")
@@ -345,12 +351,25 @@ async def query_content(request: QueryRequest):
         query_terms = [request.question]
         q_lower = request.question.lower()
         
-        # Add specific search terms for protein structure
+        # Add specific search terms for different biology topics
         if any(term in q_lower for term in ["protein", "structure", "level"]):
             query_terms.extend([
                 "primary secondary tertiary quaternary structure",
                 "protein folding levels",
                 "amino acid structure"
+            ])
+        elif any(term in q_lower for term in ["dna", "replication", "replicate"]):
+            query_terms.extend([
+                "DNA replication process",
+                "replication fork leading lagging strand",
+                "DNA polymerase helicase primase",
+                "semiconservative replication"
+            ])
+        elif any(term in q_lower for term in ["cell", "division", "mitosis", "meiosis"]):
+            query_terms.extend([
+                "cell division phases",
+                "mitosis meiosis stages",
+                "chromosome segregation"
             ])
         
         # Perform multiple searches and combine results
@@ -359,7 +378,7 @@ async def query_content(request: QueryRequest):
             try:
                 results = collection.query(
                     query_texts=[query_term],
-                    n_results=5
+                    n_results=8  # Get more results per query
                 )
                 
                 if results['documents'] and results['documents'][0]:
@@ -380,19 +399,35 @@ async def query_content(request: QueryRequest):
                 timestamp=datetime.now().isoformat()
             )
         
-        # Remove duplicates and sort by relevance
+        # Remove duplicates and sort by relevance, prioritizing quality content
         unique_results = []
         seen_content = set()
         
         for doc, metadata in all_results:
-            content_key = doc[:100].lower().strip()
-            if content_key not in seen_content and len(doc.strip()) > 50:
+            content_key = doc[:150].lower().strip()
+            doc_text = doc.strip()
+            
+            # More selective filtering for quality content
+            if (content_key not in seen_content and 
+                len(doc_text) > 50 and  # Require longer content
+                not doc_text.lower().startswith(("see sg", "draw", "your diagram")) and  # Skip study guide instructions
+                not doc_text.endswith("...") and  # Skip truncated content
+                "study guide" not in doc_text.lower()[:100]):  # Skip study guide references
+                
                 seen_content.add(content_key)
                 unique_results.append((doc, metadata))
         
-        # Sort by distance/relevance and take top results
-        unique_results.sort(key=lambda x: x[1].get('distance', 1.0))
-        unique_results = unique_results[:3]  # Top 3 most relevant
+        # If we don't have enough quality results, be less restrictive
+        if len(unique_results) < 3:
+            for doc, metadata in all_results:
+                content_key = doc[:150].lower().strip()
+                if content_key not in seen_content and len(doc.strip()) > 80:
+                    seen_content.add(content_key)
+                    unique_results.append((doc, metadata))
+        
+        # Sort by distance/relevance and content length (longer content often better)
+        unique_results.sort(key=lambda x: (x[1].get('distance', 1.0), -len(x[0])))
+        unique_results = unique_results[:6]  # Get more results for better coverage
         
         # Extract sources
         sources = list(set([metadata['title'] for _, metadata in unique_results]))
