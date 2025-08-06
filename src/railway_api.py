@@ -291,7 +291,94 @@ def format_course_content(unique_results: List, sources: List, focus: str = "gen
     return formatted_content if formatted_content else "No specific content found in your course materials for this topic."
 
 def extract_relevant_content(text: str, focus: str = "general") -> str:
-    """Extract the most relevant content from text"""
+    """Extract and format the most relevant content from text"""
+    
+    # Clean up the text first
+    text = text.strip()
+    if len(text) < 20:
+        return ""
+    
+    # Handle different content types
+    if has_list_structure(text):
+        return format_list_content(text)
+    elif has_definition_structure(text):
+        return format_definition_content(text)
+    else:
+        return extract_sentence_content(text, focus)
+
+def has_list_structure(text: str) -> bool:
+    """Check if text contains list-like structure"""
+    list_indicators = [
+        text.count(':') >= 2,  # Multiple colons suggest lists
+        text.count('\n') >= 3,  # Multiple line breaks
+        any(indicator in text.lower() for indicator in ['types of', 'include:', 'such as', 'examples:']),
+        len([line for line in text.split('\n') if line.strip()]) >= 4  # Multiple meaningful lines
+    ]
+    return any(list_indicators)
+
+def has_definition_structure(text: str) -> bool:
+    """Check if text contains definition-like structure"""
+    definition_indicators = [
+        ' is ' in text.lower(),
+        ' are ' in text.lower(),
+        ' refers to' in text.lower(),
+        ' means' in text.lower(),
+        ' defined as' in text.lower()
+    ]
+    return any(definition_indicators) and len(text) < 500
+
+def format_list_content(text: str) -> str:
+    """Format list-like content educationally"""
+    lines = text.split('\n')
+    formatted_lines = []
+    current_category = ""
+    
+    for line in lines:
+        line = line.strip()
+        if len(line) < 3:
+            continue
+            
+        # Check if this is a category header (ends with colon or is all caps)
+        if line.endswith(':') or (line.isupper() and len(line) > 5):
+            current_category = line
+            formatted_lines.append(f"\n**{line}**")
+        elif line and not line.startswith('•') and not line.startswith('-'):
+            # Format as bullet point if it's not already
+            if any(word in line.lower() for word in ['bond', 'group', 'acid', 'interaction', 'structure']):
+                formatted_lines.append(f"• {line}")
+            else:
+                formatted_lines.append(line)
+        else:
+            formatted_lines.append(line)
+    
+    result = '\n'.join(formatted_lines)
+    return result[:600] + ('...' if len(result) > 600 else '')
+
+def format_definition_content(text: str) -> str:
+    """Format definition-like content"""
+    # Split into sentences but preserve the flow
+    sentences = []
+    current_sentence = ""
+    
+    for char in text:
+        current_sentence += char
+        if char == '.' and len(current_sentence) > 30:
+            sentences.append(current_sentence.strip())
+            current_sentence = ""
+    
+    if current_sentence.strip():
+        sentences.append(current_sentence.strip())
+    
+    # Take the most relevant sentences
+    relevant = [s for s in sentences if len(s) > 20 and any(word in s.lower() for word in ['is', 'are', 'means', 'refers'])]
+    
+    if relevant:
+        return '. '.join(relevant[:3])
+    else:
+        return '. '.join(sentences[:3])
+
+def extract_sentence_content(text: str, focus: str) -> str:
+    """Extract sentence-based content (original logic)"""
     sentences = text.split('.')
     relevant_sentences = []
     
@@ -653,11 +740,6 @@ Please reformat this course material content to answer the student's question. U
                 
                 # Use our educational formatting system (course materials only)
                 answer = format_educational_response(request.question, unique_results, sources)
-                
-                # Enhanced educational responses for better teaching
-                answer = format_educational_response(request.question, unique_results, sources)
-                
-                answer += "\n\n🤖 **Note**: For more detailed AI-powered analysis and explanations, the OpenAI integration needs to be configured on the server."
                 
                 return QuestionResponse(
                     answer=answer,
