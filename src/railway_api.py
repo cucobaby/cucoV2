@@ -429,6 +429,62 @@ async def clear_all_documents():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to clear documents: {str(e)}")
 
+# --- List Documents ---
+@app.get("/list-documents")
+async def list_documents():
+    """List all documents in the knowledge base"""
+    try:
+        import chromadb
+        chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
+        
+        client = chromadb.PersistentClient(path=chroma_path)
+        
+        try:
+            collection = client.get_collection("canvas_content")
+        except Exception:
+            return {"documents": [], "count": 0}
+        
+        # Get all documents with metadata
+        results = collection.get(include=["metadatas"])
+        
+        if not results or not results["metadatas"]:
+            return {"documents": [], "count": 0}
+        
+        # Process documents and group by title
+        documents_map = {}
+        
+        for metadata in results["metadatas"]:
+            if not metadata:
+                continue
+                
+            title = metadata.get("title", "Unknown Document")
+            timestamp = metadata.get("timestamp", "")
+            content_type = metadata.get("content_type", "unknown")
+            
+            if title not in documents_map:
+                documents_map[title] = {
+                    "title": title,
+                    "timestamp": timestamp,
+                    "content_type": content_type,
+                    "chunk_count": 1
+                }
+            else:
+                documents_map[title]["chunk_count"] += 1
+        
+        documents = list(documents_map.values())
+        
+        # Sort by timestamp (newest first)
+        documents.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+        
+        return {
+            "documents": documents,
+            "count": len(documents)
+        }
+        
+    except Exception as e:
+        print(f"List documents error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list documents: {str(e)}")
+
 # --- Utility Functions ---
 def extract_pdf_text(content: bytes) -> str:
     """Extract text from PDF content"""

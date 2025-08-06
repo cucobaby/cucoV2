@@ -1,5 +1,5 @@
 // Canvas AI Assistant - Working Version
-console.log('🤖 Canvas AI Assistant v3.5.0 - ENHANCED UI VERSION LOADED');
+console.log('🤖 Canvas AI Assistant v3.5.2 - ENHANCED UI VERSION WITH CANVAS OVERRIDES LOADED');
 
 const API_BASE_URL = 'https://cucov2-production.up.railway.app';
 
@@ -77,21 +77,37 @@ class CanvasAIAssistant {
     createPanel() {
         const panel = document.createElement('div');
         panel.id = 'ai-panel';
+        
+        // Apply aggressive CSS to override Canvas styling
         panel.style.cssText = `
-            position: fixed;
-            top: 50%;
-            right: 20px;
-            transform: translateY(-50%);
-            width: 650px;
-            max-height: 85vh;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            z-index: 10001;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            position: fixed !important;
+            top: 50% !important;
+            right: 20px !important;
+            transform: translateY(-50%) !important;
+            width: 650px !important;
+            max-width: 650px !important;
+            min-width: 650px !important;
+            max-height: 85vh !important;
+            background: white !important;
+            border-radius: 12px !important;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3) !important;
+            z-index: 999999 !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            border: none !important;
+            outline: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-family: Arial, sans-serif !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+            color: #333 !important;
+            text-align: left !important;
+            box-sizing: border-box !important;
         `;
+        
+        console.log('🎨 Creating panel with enhanced Canvas-override styling...');
         
         panel.innerHTML = `
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; flex-shrink: 0;">
@@ -237,7 +253,7 @@ class CanvasAIAssistant {
             
             console.log(`📄 Extracted ${content.length} characters from "${title}"`);
             
-            const response = await fetch(`${API_BASE_URL}/ingest-content`, {
+            const response = await fetch(`${API_BASE_URL}/upload-content`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -289,12 +305,11 @@ class CanvasAIAssistant {
         resultDiv.innerHTML = '<div style="color: #ff4757;">🤖 Cuco is thinking...</div>';
         
         try {
-            const response = await fetch(`${API_BASE_URL}/ask-question`, {
+            const response = await fetch(`${API_BASE_URL}/query`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    question: question,
-                    source: 'canvas_chrome_extension'
+                    question: question
                 })
             });
             
@@ -305,7 +320,15 @@ class CanvasAIAssistant {
             resultDiv.innerHTML = `
                 <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 4px solid #ff4757;">
                     <div style="color: #ff4757; font-weight: bold; margin-bottom: 8px;">🤖 Cuco's Answer:</div>
-                    <div style="color: #333; line-height: 1.4;">${result.answer || result.response || 'No answer found'}</div>
+                    <div style="color: #333; line-height: 1.4; margin-bottom: 8px;">${result.answer}</div>
+                    ${result.sources && result.sources.length > 0 ? `
+                        <div style="border-top: 1px solid #e9ecef; padding-top: 8px; margin-top: 8px;">
+                            <div style="color: #6c757d; font-size: 12px; font-weight: 500; margin-bottom: 4px;">📚 Sources:</div>
+                            <div style="color: #6c757d; font-size: 11px;">
+                                ${result.sources.map(source => `• ${source}`).join('<br>')}
+                            </div>
+                        </div>
+                    ` : ''}
                 </div>
             `;
             

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Canvas AI Assistant",
-  "version": "3.5.1",
+  "version": "3.5.2",
   "description": "AI-powered educational assistant for Canvas LMS - Enhanced UI & Educational Responses v3.5.1",
   "permissions": [
     "activeTab",
@@ -19,7 +19,7 @@
         "https://*.instructure.com/*",
         "https://*.canvas.com/*"
       ],
-      "js": ["content.js"],
+      "js": ["content-new.js"],
       "css": ["styles.css"]
     }
   ]
