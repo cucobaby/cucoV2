@@ -49,6 +49,20 @@ class IngestResponse(BaseModel):
     files_processed: List[str]
     status: str
 
+class ContentUploadRequest(BaseModel):
+    title: str = Field(..., description="Title of the content")
+    content: str = Field(..., description="The content text to upload") 
+    source: str = Field(default="chrome_extension", description="Source of the content")
+    url: Optional[str] = Field(default=None, description="URL where content came from")
+    content_type: str = Field(default="page", description="Type of content")
+    timestamp: Optional[str] = Field(default=None, description="When content was created")
+
+class ContentUploadResponse(BaseModel):
+    status: str
+    message: str
+    content_id: str
+    chunks_created: int
+
 # --- Enhanced Response Generation ---
 def format_educational_response(question: str, unique_results: List, sources: List) -> str:
     """Generate concise, focused response using OpenAI with enhanced search results"""
@@ -245,6 +259,75 @@ async def ingest_content(background_tasks: BackgroundTasks, files: List[UploadFi
     except Exception as e:
         print(f"Ingestion error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to ingest content: {str(e)}")
+
+# --- JSON Content Upload (for Chrome Extension) ---
+@app.post("/upload-content", response_model=ContentUploadResponse)
+async def upload_content(request: ContentUploadRequest):
+    """Upload content from JSON (used by Chrome extension)"""
+    try:
+        import chromadb
+        chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
+        
+        client = chromadb.PersistentClient(path=chroma_path)
+        
+        try:
+            collection = client.get_collection("canvas_content")
+        except:
+            collection = client.create_collection("canvas_content")
+        
+        # Validate content
+        if not request.content or len(request.content.strip()) < 20:
+            raise HTTPException(status_code=400, detail="Content too short or empty")
+        
+        # Chunk the content
+        chunks = chunk_text(request.content, max_chunk_size=800, overlap=100)
+        
+        if not chunks:
+            raise HTTPException(status_code=400, detail="No valid content chunks created")
+        
+        # Prepare documents for ChromaDB
+        all_documents = []
+        all_metadatas = []
+        all_ids = []
+        content_id = uuid.uuid4().hex[:12]
+        
+        for i, chunk in enumerate(chunks):
+            if len(chunk.strip()) > 20:
+                doc_id = f"{content_id}_chunk_{i}"
+                all_documents.append(chunk)
+                all_metadatas.append({
+                    "title": request.title,
+                    "source": request.source,
+                    "content_type": request.content_type,
+                    "url": request.url or "",
+                    "chunk_index": i,
+                    "timestamp": request.timestamp or datetime.now().isoformat(),
+                    "content_id": content_id
+                })
+                all_ids.append(doc_id)
+        
+        if not all_documents:
+            raise HTTPException(status_code=400, detail="No valid content chunks to upload")
+        
+        # Add to ChromaDB
+        collection.add(
+            documents=all_documents,
+            metadatas=all_metadatas,
+            ids=all_ids
+        )
+        
+        return ContentUploadResponse(
+            status="success",
+            message=f"Successfully uploaded '{request.title}' with {len(all_documents)} chunks",
+            content_id=content_id,
+            chunks_created=len(all_documents)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Content upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload content: {str(e)}")
 
 # --- Query Processing ---
 @app.post("/query", response_model=QueryResponse)
