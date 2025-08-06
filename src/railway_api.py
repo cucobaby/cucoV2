@@ -141,13 +141,13 @@ Instructions:
 
 Format your response as a complete educational explanation, not as fragmented study notes."""
 
-        # Fixed OpenAI client initialization
+        # Fixed OpenAI client initialization - use proper v1.0+ syntax
         client = openai.OpenAI(api_key=api_key)
         
         print(f"DEBUG: Calling OpenAI with {len(combined_content)} characters of content...")
         
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # Use gpt-3.5-turbo instead of gpt-4 for better reliability
+            model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=1200,
             temperature=0.3
@@ -320,7 +320,7 @@ async def detailed_health_check():
         import openai
         api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
-            # Simple test call to verify API key works
+            # Simple test call to verify API key works with proper v1.0+ syntax
             client = openai.OpenAI(api_key=api_key)
             test_response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
