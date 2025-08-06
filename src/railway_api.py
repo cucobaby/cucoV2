@@ -106,22 +106,75 @@ def format_educational_response(question: str, unique_results: List, sources: Li
             context_text += chunk['content']
             context_text += "\n"
         
-        # Biology-focused system prompt
-        system_prompt = """You are an expert biology tutor helping students understand complex biological concepts. 
-Your responses should be:
-- Clear and educational
-- Well-structured with headings and bullet points
-- Include step-by-step processes when applicable
-- Define key terms and concepts
-- Synthesize information from multiple sources into coherent explanations
-- Focus on understanding rather than memorization"""
+        # Enhanced educational system prompt
+        system_prompt = """You are an expert educational tutor helping students master complex academic concepts. 
+Create responses that are:
+- Visually structured with clear sections and emojis
+- Student-friendly with learning objectives and summaries
+- Include difficulty indicators and study guidance
+- Define key terms in a glossary format
+- Use step-by-step explanations for processes
+- Add "Think About This" sections for deeper understanding
+- Connect to related topics for comprehensive learning"""
 
         user_prompt = f"""Question: {question}
 
 Course Content:
 {context_text}
 
-Please provide a comprehensive, well-structured educational answer based on this course content. Aim for 400-600 words with clear organization."""
+Create a comprehensive, visually appealing educational response using this EXACT format:
+
+# 🧬 [Main Topic Title]
+
+> **📚 Learning Objective:** By the end of this explanation, you'll understand [key learning goal].
+
+---
+
+## 🎯 Quick Summary
+[2-3 sentence overview of the topic]
+
+**⏱️ Study Time:** [X-Y minutes] | **📊 Difficulty:** [🟢 Basic/🟡 Intermediate/🔴 Advanced]
+
+---
+
+## 🔍 Definition & Overview
+[Clear definition and context]
+
+## 🔬 Key Concepts You Need to Know
+
+### 1. 📝 [Concept Name]
+- **What it is:** [explanation]
+- **Why it matters:** [relevance]
+- **Key terms:** [important vocabulary]
+
+### 2. ⚙️ [Process/Mechanism Name]
+**Step-by-step breakdown:**
+1. **[Step 1]** 🚀 - [description]
+2. **[Step 2]** ➡️ - [description]  
+3. **[Step 3]** 🏁 - [description]
+
+---
+
+## 💡 Key Terms to Remember
+| Term | Definition | Why Important |
+|------|------------|---------------|
+| [Term 1] | [Definition] | [Significance] |
+| [Term 2] | [Definition] | [Significance] |
+
+---
+
+## 🤔 Think About This
+- [Thought-provoking question 1]
+- [Connection or application question 2]
+
+---
+
+## 🔗 Related Topics to Explore Next
+- [Related topic 1]
+- [Related topic 2]
+- [Related topic 3]
+
+Use emojis, clear formatting, and make it engaging for students. Aim for 500-700 words total.
 
         print(f"Attempting OpenAI call for question: {question}")
         
@@ -146,11 +199,30 @@ Please provide a comprehensive, well-structured educational answer based on this
 def _create_fallback_response(question: str, context_chunks: List) -> str:
     """Create comprehensive fallback response when AI is not available"""
     if not context_chunks:
-        return f"I couldn't find relevant content to answer your question about '{question}'. Try rephrasing or asking about a different topic."
+        return f"# ❓ {question.title()}\n\n> **📚 Learning Objective:** Find relevant course materials to answer this question.\n\n---\n\n## 🎯 Quick Summary\nI couldn't find relevant content to answer your question about '{question}'. Try rephrasing or asking about a different topic.\n\n**💡 Tip:** Upload more course materials or try asking about topics in your study guides."
     
-    # Create comprehensive educational answer from context chunks
-    answer_parts = [f"# {question.title()}\n"]
-    answer_parts.append("Based on your course materials, here's a comprehensive explanation:\n")
+    # Determine topic and difficulty
+    topic_title = question.title()
+    if any(term in question.lower() for term in ['dna', 'replication', 'protein', 'enzyme']):
+        subject_emoji = "🧬"
+        difficulty = "🟡 Intermediate"
+    elif any(term in question.lower() for term in ['basic', 'simple', 'definition', 'what is']):
+        subject_emoji = "📚"
+        difficulty = "🟢 Basic"
+    else:
+        subject_emoji = "🔬"
+        difficulty = "🟡 Intermediate"
+    
+    # Create enhanced educational answer from context chunks
+    answer_parts = [f"# {subject_emoji} {topic_title}\n"]
+    answer_parts.append(f"> **📚 Learning Objective:** By the end of this explanation, you'll understand the key concepts related to {question.lower()}.\n")
+    answer_parts.append("---\n")
+    
+    # Quick Summary
+    answer_parts.append("## 🎯 Quick Summary")
+    answer_parts.append("Based on your course materials, here's what we found about this topic:\n")
+    answer_parts.append(f"**⏱️ Study Time:** 3-5 minutes | **📊 Difficulty:** {difficulty}\n")
+    answer_parts.append("---\n")
     
     # Group and organize content by relevance
     high_relevance = [chunk for chunk in context_chunks if chunk.get('relevance_score', 0) > 0.7]
@@ -159,8 +231,10 @@ def _create_fallback_response(question: str, context_chunks: List) -> str:
     # Use high relevance content primarily
     primary_chunks = high_relevance[:2] if high_relevance else context_chunks[:2]
     
+    answer_parts.append("## 🔍 Key Information from Course Materials\n")
+    
     for i, chunk in enumerate(primary_chunks, 1):
-        answer_parts.append(f"## Key Information from {chunk['source']}\n")
+        answer_parts.append(f"### {i}. 📝 From {chunk['source']}\n")
         
         content = chunk['content']
         
@@ -188,15 +262,21 @@ def _create_fallback_response(question: str, context_chunks: List) -> str:
     
     # Add supplementary information if available
     if medium_relevance and len(primary_chunks) < 2:
-        answer_parts.append("## Additional Context\n")
+        answer_parts.append("## 📖 Additional Context\n")
         supp_content = medium_relevance[0]['content'][:300]
         if len(medium_relevance[0]['content']) > 300:
             supp_content += "..."
         answer_parts.append(supp_content + "\n")
     
-    # Add educational note
-    answer_parts.append("---")
-    answer_parts.append("*This explanation was compiled from your study materials. The content covers the key concepts needed to understand this topic.*")
+    # Add study guidance
+    answer_parts.append("---\n")
+    answer_parts.append("## 💡 Study Tips\n")
+    answer_parts.append("- Review the key concepts highlighted above\n")
+    answer_parts.append("- Look for connections to other topics in your course materials\n")
+    answer_parts.append("- Ask follow-up questions to deepen your understanding\n")
+    
+    answer_parts.append("---\n")
+    answer_parts.append("*📖 This explanation was compiled from your study materials. The content covers the key concepts needed to understand this topic.*")
     
     return "\n".join(answer_parts)
 
