@@ -579,6 +579,57 @@ async def upload_content(request: ContentUploadRequest):
             total_documents=0
         )
 
+@app.delete("/clear-documents")
+async def clear_documents():
+    """Clear all documents from the knowledge base"""
+    try:
+        print("🗑️ Clearing all documents from knowledge base")
+        
+        import chromadb
+        chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
+        
+        if not os.path.exists(chroma_path):
+            return {
+                "status": "success",
+                "message": "Knowledge base was already empty",
+                "documents_removed": 0
+            }
+        
+        client = chromadb.PersistentClient(path=chroma_path)
+        
+        try:
+            collection = client.get_collection("canvas_content")
+            document_count = collection.count()
+            
+            # Delete the entire collection
+            client.delete_collection("canvas_content")
+            
+            print(f"✅ Removed {document_count} documents")
+            
+            return {
+                "status": "success", 
+                "message": f"Successfully cleared {document_count} documents from knowledge base",
+                "documents_removed": document_count
+            }
+            
+        except Exception as collection_error:
+            if "does not exist" in str(collection_error):
+                return {
+                    "status": "success",
+                    "message": "Knowledge base was already empty",
+                    "documents_removed": 0
+                }
+            else:
+                raise collection_error
+                
+    except Exception as e:
+        print(f"❌ Clear failed: {e}")
+        return {
+            "status": "error",
+            "message": f"Failed to clear documents: {str(e)}",
+            "documents_removed": 0
+        }
+
 @app.get("/health")
 async def health_check():
     """Lightweight health check endpoint optimized for Railway deployment"""
