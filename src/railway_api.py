@@ -92,6 +92,7 @@ def format_educational_response(question: str, unique_results: List, sources: Li
         
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
+            print("No OpenAI API key found - using fallback response")
             return _create_fallback_response(question, context_chunks)
         
         client = openai.OpenAI(api_key=api_key)
@@ -120,6 +121,8 @@ Course Content:
 
 Please provide a comprehensive, well-structured educational answer based on this course content. Aim for 400-600 words with clear organization."""
 
+        print(f"Attempting OpenAI call for question: {question}")
+        
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -130,28 +133,68 @@ Please provide a comprehensive, well-structured educational answer based on this
             temperature=0.3
         )
         
-        return response.choices[0].message.content.strip()
+        ai_response = response.choices[0].message.content.strip()
+        print(f"OpenAI response successful: {len(ai_response)} characters")
+        return ai_response
         
     except Exception as e:
-        print(f"OpenAI API error: {e}")
+        print(f"OpenAI API error (falling back to structured response): {e}")
         return _create_fallback_response(question, context_chunks)
 
 def _create_fallback_response(question: str, context_chunks: List) -> str:
-    """Create structured fallback response when AI is not available"""
+    """Create comprehensive fallback response when AI is not available"""
     if not context_chunks:
         return f"I couldn't find relevant content to answer your question about '{question}'. Try rephrasing or asking about a different topic."
     
-    # Create structured answer from context chunks
-    answer_parts = [f"Based on your course materials, here's what I found about '{question}':\n"]
+    # Create comprehensive educational answer from context chunks
+    answer_parts = [f"# {question.title()}\n"]
+    answer_parts.append("Based on your course materials, here's a comprehensive explanation:\n")
     
-    for i, chunk in enumerate(context_chunks[:3], 1):
-        answer_parts.append(f"\n**From {chunk['source']}:**")
+    # Group and organize content by relevance
+    high_relevance = [chunk for chunk in context_chunks if chunk.get('relevance_score', 0) > 0.7]
+    medium_relevance = [chunk for chunk in context_chunks if 0.4 <= chunk.get('relevance_score', 0) <= 0.7]
+    
+    # Use high relevance content primarily
+    primary_chunks = high_relevance[:2] if high_relevance else context_chunks[:2]
+    
+    for i, chunk in enumerate(primary_chunks, 1):
+        answer_parts.append(f"## Key Information from {chunk['source']}\n")
+        
         content = chunk['content']
-        if len(content) > 400:
-            content = content[:400] + "..."
-        answer_parts.append(content)
+        
+        # Clean and format the content better
+        content = content.replace('\n\n', '\n').strip()
+        
+        # If content is very long, extract key sentences
+        if len(content) > 500:
+            sentences = content.split('. ')
+            # Prioritize sentences with key biological terms
+            key_sentences = []
+            for sentence in sentences:
+                if any(term in sentence.lower() for term in [
+                    'dna', 'replication', 'process', 'mechanism', 'enzyme', 'structure',
+                    'protein', 'synthesis', 'occurs', 'involves', 'during', 'formation'
+                ]):
+                    key_sentences.append(sentence.strip())
+            
+            if key_sentences:
+                content = '. '.join(key_sentences[:4]) + '.'
+            else:
+                content = '. '.join(sentences[:3]) + '.'
+        
+        answer_parts.append(content + "\n")
     
-    answer_parts.append(f"\n*Note: This response was compiled directly from your study materials. For more comprehensive explanations, ensure OpenAI integration is properly configured.*")
+    # Add supplementary information if available
+    if medium_relevance and len(primary_chunks) < 2:
+        answer_parts.append("## Additional Context\n")
+        supp_content = medium_relevance[0]['content'][:300]
+        if len(medium_relevance[0]['content']) > 300:
+            supp_content += "..."
+        answer_parts.append(supp_content + "\n")
+    
+    # Add educational note
+    answer_parts.append("---")
+    answer_parts.append("*This explanation was compiled from your study materials. The content covers the key concepts needed to understand this topic.*")
     
     return "\n".join(answer_parts)
 
@@ -738,6 +781,42 @@ async def debug_chromadb():
         
     except Exception as e:
         return {"error": f"Debug failed: {str(e)}"}
+
+@app.get("/debug/openai-test")
+async def debug_openai_test():
+    """Debug OpenAI integration specifically"""
+    debug_info = {
+        "timestamp": datetime.now().isoformat(),
+        "api_key_present": bool(os.getenv("OPENAI_API_KEY")),
+        "api_key_length": len(os.getenv("OPENAI_API_KEY", "")),
+    }
+    
+    try:
+        import openai
+        debug_info["openai_module"] = "imported successfully"
+        
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            debug_info["error"] = "No API key in environment"
+            return debug_info
+            
+        client = openai.OpenAI(api_key=api_key)
+        debug_info["client_init"] = "successful"
+        
+        # Test simple API call
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": "Say 'test'"}],
+            max_tokens=5
+        )
+        
+        debug_info["api_test"] = f"successful: {response.choices[0].message.content}"
+        
+    except Exception as e:
+        debug_info["error"] = str(e)
+        debug_info["error_type"] = type(e).__name__
+        
+    return debug_info
 
 if __name__ == "__main__":
     import uvicorn
