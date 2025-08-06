@@ -453,6 +453,40 @@ def generate_study_tips(question: str, topic: str, unique_results: List) -> str:
     return '\n'.join(tips[:4])
 
 # --- Health Check with Defensive ChromaDB ---
+@app.get("/debug/chromadb")
+async def debug_chromadb():
+    """Debug ChromaDB status and content"""
+    try:
+        import chromadb
+        chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
+        
+        debug_info = {
+            "timestamp": datetime.now().isoformat(),
+            "chroma_path": chroma_path,
+            "path_exists": os.path.exists(chroma_path)
+        }
+        
+        if os.path.exists(chroma_path):
+            client = chromadb.PersistentClient(path=chroma_path)
+            try:
+                collection = client.get_collection("canvas_content")
+                debug_info["canvas_collection"] = f"Found with {collection.count()} documents"
+                
+                # Test query
+                if collection.count() > 0:
+                    test_results = collection.query(query_texts=["protein"], n_results=1)
+                    debug_info["test_query"] = "Success" if test_results['documents'][0] else "No results"
+                else:
+                    debug_info["test_query"] = "Collection empty"
+                    
+            except Exception as col_error:
+                debug_info["canvas_collection"] = f"Error: {str(col_error)}"
+        
+        return debug_info
+        
+    except Exception as e:
+        return {"error": str(e), "timestamp": datetime.now().isoformat()}
+
 @app.get("/health")
 async def health_check():
     """Lightweight health check endpoint optimized for Railway deployment"""
@@ -636,13 +670,11 @@ async def ask_question(request: QuestionRequest):
         try:
             collection = client.get_collection("canvas_content")
             
-            # Enhanced search for relevant content with multiple strategies
+            # Start with simpler search strategy to debug
             search_terms = [request.question]
             
             # Extract key terms for better search
             question_lower = request.question.lower()
-            
-            # Strategy 1: Direct term extraction
             if 'what is' in question_lower or 'what are' in question_lower:
                 term = question_lower.replace('what is', '').replace('what are', '').strip()
                 if term:
@@ -656,65 +688,30 @@ async def ask_question(request: QuestionRequest):
                 if term:
                     search_terms.append(term)
             
-            # Strategy 2: Topic-specific expansions for biology concepts
-            if 'protein structure' in question_lower:
-                search_terms.extend([
-                    'protein structure',
-                    'amino acid sequence',
-                    'primary structure',
-                    'secondary structure',
-                    'tertiary structure', 
-                    'quaternary structure',
-                    'alpha helix',
-                    'beta sheet',
-                    'protein folding',
-                    'peptide bonds'
-                ])
-            elif 'levels of protein' in question_lower:
-                search_terms.extend([
-                    'primary secondary tertiary quaternary',
-                    'protein structure levels',
-                    'amino acid sequence',
-                    'protein folding',
-                    'peptide'
-                ])
+            # Add protein-specific terms if relevant
+            if any(word in question_lower for word in ['protein', 'structure', 'amino']):
+                search_terms.extend(['protein', 'structure', 'amino acid'])
             
-            # Strategy 3: Keyword extraction from question
-            keywords = [word for word in question_lower.split() 
-                       if len(word) > 3 and word not in ['what', 'tell', 'about', 'the', 'are', 'is', 'how', 'why']]
-            search_terms.extend(keywords)
-            
-            # Search with multiple terms and combine results intelligently
+            # Simple search with basic terms
             all_results = []
             for term in search_terms:
                 results = collection.query(
                     query_texts=[term],
-                    n_results=min(5, collection.count())  # Get more results per term
+                    n_results=min(3, collection.count())
                 )
                 if results['documents'][0]:
-                    # Add term relevance score
-                    for doc, metadata in zip(results['documents'][0], results['metadatas'][0]):
-                        all_results.append((doc, metadata, term))
+                    all_results.extend(zip(results['documents'][0], results['metadatas'][0]))
             
-            # Remove duplicates and prioritize results
+            # Remove duplicates
             seen_docs = set()
-            unique_results = []
-            
-            # First pass: prioritize results that match multiple search terms
-            for doc, metadata, search_term in all_results:
-                doc_key = doc[:100]  # Use first 100 chars as key
+            final_results = []
+            for doc, metadata in all_results:
+                doc_key = doc[:100]
                 if doc_key not in seen_docs:
-                    # Check how many search terms this document matches
-                    relevance_score = sum(1 for term in search_terms if term.lower() in doc.lower())
-                    
                     seen_docs.add(doc_key)
-                    unique_results.append((doc, metadata, relevance_score))
-            
-            # Sort by relevance score (descending)
-            unique_results.sort(key=lambda x: x[2], reverse=True)
-            
-            # Take top results
-            final_results = [(doc, metadata) for doc, metadata, score in unique_results[:8]]
+                    final_results.append((doc, metadata))
+                    if len(final_results) >= 5:
+                        break
             
             if not final_results:
                 return QuestionResponse(
@@ -796,7 +793,7 @@ Please create an educational response that directly answers the student's questi
                 print(f"⚠️ OpenAI failed: {openai_error}")
                 
                 # Use our educational formatting system (course materials only)
-                answer = format_educational_response(request.question, unique_results, sources)
+                answer = format_educational_response(request.question, final_results, sources)
                 
                 return QuestionResponse(
                     answer=answer,
