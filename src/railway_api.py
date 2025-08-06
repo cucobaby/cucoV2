@@ -47,6 +47,18 @@ class IngestResponse(BaseModel):
     content_id: str
     processing_time: float
 
+class ContentUploadRequest(BaseModel):
+    title: str
+    content: str
+    content_type: str = "page"
+    source: str = "canvas_chrome_extension"
+
+class ContentUploadResponse(BaseModel):
+    status: str
+    message: str
+    document_count: int
+    total_documents: int
+
 class QuestionRequest(BaseModel):
     question: str
     context: Optional[str] = None
@@ -486,6 +498,86 @@ async def debug_chromadb():
         
     except Exception as e:
         return {"error": str(e), "timestamp": datetime.now().isoformat()}
+
+@app.post("/upload-content")
+async def upload_content(request: ContentUploadRequest):
+    """Upload content to the knowledge base"""
+    try:
+        print(f"📤 Content upload: {request.title}")
+        
+        # Initialize ChromaDB
+        import chromadb
+        chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
+        os.makedirs(chroma_path, exist_ok=True)
+        
+        client = chromadb.PersistentClient(path=chroma_path)
+        
+        # Get or create collection
+        try:
+            collection = client.get_collection("canvas_content")
+            print(f"📚 Using existing collection with {collection.count()} documents")
+        except Exception:
+            print("🆕 Creating new collection")
+            collection = client.create_collection(
+                name="canvas_content",
+                metadata={"description": "Canvas course content for AI assistant"}
+            )
+        
+        # Process content with ContentAnalyzer if available
+        content_chunks = []
+        try:
+            from .content_analyzer import ContentAnalyzer
+            analyzer = ContentAnalyzer()
+            content_chunks = analyzer.process_content(request.content, request.content_type)
+            print(f"🧠 ContentAnalyzer processed into {len(content_chunks)} chunks")
+        except Exception as analyzer_error:
+            print(f"⚠️ ContentAnalyzer failed: {analyzer_error}")
+            # Fallback to simple chunking
+            content_chunks = [{"text": request.content, "metadata": {}}]
+        
+        # Store in ChromaDB
+        documents = []
+        metadatas = []
+        ids = []
+        
+        for i, chunk in enumerate(content_chunks):
+            doc_id = f"{request.title}_{i}_{hash(chunk['text']) % 10000}"
+            
+            documents.append(chunk["text"])
+            metadatas.append({
+                "title": request.title,
+                "source": request.source,
+                "content_type": request.content_type,
+                "chunk_index": i,
+                "timestamp": datetime.now().isoformat(),
+                **chunk.get("metadata", {})
+            })
+            ids.append(doc_id)
+        
+        # Add to collection
+        collection.add(
+            documents=documents,
+            metadatas=metadatas,
+            ids=ids
+        )
+        
+        print(f"✅ Successfully stored {len(content_chunks)} chunks")
+        
+        return ContentUploadResponse(
+            status="success",
+            message=f"Successfully uploaded '{request.title}' as {len(content_chunks)} chunks",
+            document_count=len(content_chunks),
+            total_documents=collection.count()
+        )
+        
+    except Exception as e:
+        print(f"❌ Upload failed: {e}")
+        return ContentUploadResponse(
+            status="error",
+            message=f"Upload failed: {str(e)}",
+            document_count=0,
+            total_documents=0
+        )
 
 @app.get("/health")
 async def health_check():
