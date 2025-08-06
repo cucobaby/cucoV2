@@ -804,11 +804,27 @@ async def debug_openai_test():
             
         # Try explicit initialization without any other parameters
         try:
+            # Clear any environment variables that might interfere
+            import sys
+            debug_info["python_version"] = sys.version
+            debug_info["openai_version"] = openai.__version__
+            
+            # Try most basic initialization possible
             from openai import OpenAI
             client = OpenAI(api_key=api_key)
             debug_info["client_init"] = "successful"
         except Exception as init_error:
             debug_info["client_init_error"] = str(init_error)
+            debug_info["init_error_type"] = type(init_error).__name__
+            
+            # Try alternative initialization
+            try:
+                import openai
+                openai.api_key = api_key
+                debug_info["legacy_init"] = "attempted openai.api_key method"
+            except Exception as legacy_error:
+                debug_info["legacy_error"] = str(legacy_error)
+            
             return debug_info
         
         # Test simple API call
