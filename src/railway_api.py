@@ -24,7 +24,7 @@ import csv
 from io import StringIO, BytesIO
 
 # --- Configuration ---
-app = FastAPI(title="CucoV2 Educational Assistant API", version="4.0.0")
+app = FastAPI(title="CucoV2 Educational Assistant API - Clean v2", version="4.1.0")
 
 app.add_middleware(
     CORSMiddleware,
