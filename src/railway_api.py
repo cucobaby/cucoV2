@@ -58,6 +58,302 @@ class QuestionResponse(BaseModel):
     sources: List[Dict[str, Any]]
     response_time: float
 
+# --- Educational Response Formatting ---
+def format_educational_response(question: str, unique_results: List, sources: List) -> str:
+    """Format responses to be educational and student-friendly"""
+    question_lower = question.lower()
+    
+# --- Dynamic Educational Response System ---
+def format_educational_response(question: str, unique_results: List, sources: List) -> str:
+    """Create educational responses for ANY topic dynamically"""
+    
+    # Analyze the question to understand what type of response is needed
+    question_type = analyze_question_type(question)
+    topic = extract_main_topic(question)
+    
+    # Build structured educational response
+    response = f"# 📚 Learning About: {topic}\n\n"
+    
+    if question_type == "definition":
+        response += build_definition_response(question, topic, unique_results, sources)
+    elif question_type == "explanation":
+        response += build_explanation_response(question, topic, unique_results, sources)
+    elif question_type == "comparison":
+        response += build_comparison_response(question, topic, unique_results, sources)
+    elif question_type == "process":
+        response += build_process_response(question, topic, unique_results, sources)
+    else:
+        response += build_general_response(question, topic, unique_results, sources)
+    
+    # Add study guidance
+    response += "\n## 🎯 Study Tips\n"
+    response += generate_study_tips(question, topic, unique_results)
+    
+    response += "\n---\n💡 **Remember**: Understanding concepts deeply is better than memorizing facts!\n"
+    response += "🤖 **Note**: For AI-powered detailed explanations, OpenAI integration is needed."
+    
+    return response
+
+def analyze_question_type(question: str) -> str:
+    """Determine what type of educational response is needed"""
+    q_lower = question.lower()
+    
+    if any(phrase in q_lower for phrase in ["what is", "define", "definition of"]):
+        return "definition"
+    elif any(phrase in q_lower for phrase in ["how does", "explain", "why does", "how works"]):
+        return "explanation"
+    elif any(phrase in q_lower for phrase in ["difference between", "compare", "contrast", "vs"]):
+        return "comparison"
+    elif any(phrase in q_lower for phrase in ["process of", "steps", "pathway", "mechanism"]):
+        return "process"
+    else:
+        return "general"
+
+def extract_main_topic(question: str) -> str:
+    """Extract the main topic from the question"""
+    # Remove common question words to get the core topic
+    q_lower = question.lower()
+    
+    # Remove question starters
+    for starter in ["what is", "what are", "define", "explain", "how does", "why does", "tell me about"]:
+        if starter in q_lower:
+            q_lower = q_lower.replace(starter, "").strip()
+    
+    # Clean up articles and prepositions
+    for word in ["the", "a", "an", "of", "in", "on", "at", "for"]:
+        q_lower = q_lower.replace(f" {word} ", " ")
+    
+    return q_lower.strip().title()
+
+def build_definition_response(question: str, topic: str, unique_results: List, sources: List) -> str:
+    """Build a definition-focused educational response"""
+    response = "## Definition\n"
+    
+    # Extract definition from course materials
+    definitions = extract_definitions_from_content(unique_results, topic)
+    
+    if definitions:
+        response += f"{definitions[0]}\n\n"
+        
+        if len(definitions) > 1:
+            response += "## Additional Perspectives\n"
+            for i, definition in enumerate(definitions[1:], 2):
+                response += f"**Source {i}**: {definition}\n\n"
+    else:
+        response += "Based on your course materials:\n\n"
+        response += format_course_content(unique_results, sources)
+    
+    return response
+
+def build_explanation_response(question: str, topic: str, unique_results: List, sources: List) -> str:
+    """Build an explanation-focused educational response"""
+    response = "## How It Works\n"
+    
+    # Look for explanatory content
+    explanations = extract_explanations_from_content(unique_results, question)
+    
+    if explanations:
+        for explanation in explanations:
+            response += f"• {explanation}\n"
+        response += "\n"
+    
+    response += "## From Your Course Materials\n"
+    response += format_course_content(unique_results, sources, focus="explanation")
+    
+    return response
+
+def build_comparison_response(question: str, topic: str, unique_results: List, sources: List) -> str:
+    """Build a comparison-focused educational response"""
+    response = "## Key Comparisons\n"
+    
+    # Extract comparative information
+    comparisons = extract_comparisons_from_content(unique_results, question)
+    
+    if comparisons:
+        for comparison in comparisons:
+            response += f"• {comparison}\n"
+        response += "\n"
+    
+    response += "## Detailed Information\n"
+    response += format_course_content(unique_results, sources, focus="comparison")
+    
+    return response
+
+def build_process_response(question: str, topic: str, unique_results: List, sources: List) -> str:
+    """Build a process-focused educational response"""
+    response = "## Process Overview\n"
+    
+    # Extract process steps
+    steps = extract_process_steps_from_content(unique_results, question)
+    
+    if steps:
+        response += "### Key Steps:\n"
+        for i, step in enumerate(steps, 1):
+            response += f"{i}. {step}\n"
+        response += "\n"
+    
+    response += "## Detailed Process Information\n"
+    response += format_course_content(unique_results, sources, focus="process")
+    
+    return response
+
+def build_general_response(question: str, topic: str, unique_results: List, sources: List) -> str:
+    """Build a general educational response"""
+    response = "## Key Information\n"
+    response += format_course_content(unique_results, sources)
+    return response
+
+def extract_definitions_from_content(unique_results: List, topic: str) -> List[str]:
+    """Extract definition-like sentences from course content"""
+    definitions = []
+    topic_lower = topic.lower()
+    
+    for doc, metadata in unique_results:
+        sentences = doc.split('.')
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if len(sentence) < 20:
+                continue
+                
+            sentence_lower = sentence.lower()
+            
+            # Look for definition patterns
+            if (topic_lower in sentence_lower and 
+                any(pattern in sentence_lower for pattern in [" is ", " are ", " refers to", " means", " defined as"])):
+                definitions.append(sentence + ".")
+                
+    return definitions[:3]  # Return top 3 definitions
+
+def extract_explanations_from_content(unique_results: List, question: str) -> List[str]:
+    """Extract explanatory content"""
+    explanations = []
+    
+    for doc, metadata in unique_results:
+        sentences = doc.split('.')
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if len(sentence) < 30:
+                continue
+                
+            # Look for explanatory patterns
+            if any(pattern in sentence.lower() for pattern in ["because", "due to", "results in", "causes", "leads to"]):
+                explanations.append(sentence + ".")
+                
+    return explanations[:4]
+
+def extract_comparisons_from_content(unique_results: List, question: str) -> List[str]:
+    """Extract comparative information"""
+    comparisons = []
+    
+    for doc, metadata in unique_results:
+        sentences = doc.split('.')
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if len(sentence) < 25:
+                continue
+                
+            # Look for comparison patterns
+            if any(pattern in sentence.lower() for pattern in ["unlike", "compared to", "different from", "similar to", "whereas", "while"]):
+                comparisons.append(sentence + ".")
+                
+    return comparisons[:4]
+
+def extract_process_steps_from_content(unique_results: List, question: str) -> List[str]:
+    """Extract process steps"""
+    steps = []
+    
+    for doc, metadata in unique_results:
+        sentences = doc.split('.')
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if len(sentence) < 25:
+                continue
+                
+            # Look for step patterns
+            if any(pattern in sentence.lower() for pattern in ["first", "second", "third", "next", "then", "finally", "step"]):
+                steps.append(sentence + ".")
+                
+    return steps[:5]
+
+def format_course_content(unique_results: List, sources: List, focus: str = "general") -> str:
+    """Format course content in an educational way"""
+    formatted_content = ""
+    
+    for i, (doc, source) in enumerate(unique_results[:3]):
+        # Extract meaningful content
+        relevant_content = extract_relevant_content(doc, focus)
+        
+        if relevant_content:
+            formatted_content += f"### {source['title']}\n"
+            formatted_content += f"{relevant_content}\n\n"
+    
+    return formatted_content if formatted_content else "No specific content found in your course materials for this topic."
+
+def extract_relevant_content(text: str, focus: str = "general") -> str:
+    """Extract the most relevant content from text"""
+    sentences = text.split('.')
+    relevant_sentences = []
+    
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if len(sentence) < 20:
+            continue
+            
+        # Score sentence relevance
+        relevance_score = 0
+        
+        # General quality indicators
+        if len(sentence) > 50:
+            relevance_score += 1
+        if any(char.isupper() for char in sentence):
+            relevance_score += 1
+        if sentence.count(' ') >= 5:  # Has substance
+            relevance_score += 1
+            
+        # Focus-specific scoring
+        if focus == "explanation" and any(word in sentence.lower() for word in ["because", "therefore", "results", "causes"]):
+            relevance_score += 2
+        elif focus == "process" and any(word in sentence.lower() for word in ["step", "first", "then", "next", "process"]):
+            relevance_score += 2
+        elif focus == "comparison" and any(word in sentence.lower() for word in ["compare", "unlike", "similar", "different"]):
+            relevance_score += 2
+            
+        if relevance_score >= 2:
+            relevant_sentences.append(sentence)
+    
+    # Return top sentences
+    result = '. '.join(relevant_sentences[:4])
+    if result and not result.endswith('.'):
+        result += '.'
+        
+    return result if len(result) > 50 else text[:400] + '...'
+
+def generate_study_tips(question: str, topic: str, unique_results: List) -> str:
+    """Generate relevant study tips based on the question and content"""
+    tips = []
+    
+    # General study tips based on question type
+    q_lower = question.lower()
+    
+    if "what is" in q_lower or "define" in q_lower:
+        tips.append("• Focus on understanding the core definition first, then build on details")
+        tips.append("• Try to explain the concept in your own words")
+    elif "how does" in q_lower or "explain" in q_lower:
+        tips.append("• Break down the process into smaller steps")
+        tips.append("• Look for cause-and-effect relationships")
+    elif "compare" in q_lower or "difference" in q_lower:
+        tips.append("• Create a comparison table to organize similarities and differences")
+        tips.append("• Focus on key distinguishing features")
+    
+    # Add content-specific tips
+    if len(unique_results) > 1:
+        tips.append("• Review multiple sources to get a complete understanding")
+    
+    tips.append("• Connect this concept to related topics you've already learned")
+    tips.append("• Practice applying this knowledge to solve problems")
+    
+    return '\n'.join(tips[:4])
+
 # --- Health Check with Defensive ChromaDB ---
 @app.get("/health")
 async def health_check():
@@ -315,11 +611,31 @@ async def ask_question(request: QuestionRequest):
                 response = openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": "You are an AI assistant helping students with their course materials. Answer questions based only on the provided context."},
-                        {"role": "user", "content": f"Question: {request.question}\n\nContext from course materials:\n{context}\n\nPlease provide a helpful answer based on the course materials."}
+                        {"role": "system", "content": """You are an expert biology tutor helping students learn. Your job is to:
+1. TEACH concepts clearly with definitions and explanations
+2. Break down complex topics into understandable parts  
+3. Use analogies and examples when helpful
+4. Structure responses with clear headings and bullet points
+5. Connect concepts to broader biological principles
+6. Be encouraging and supportive
+
+Always start with a clear definition, then explain key points, and provide examples."""},
+                        {"role": "user", "content": f"""Question: {request.question}
+
+Course Material Context:
+{context}
+
+Please provide a comprehensive, educational response that teaches the student about this topic. Structure your answer with:
+- Clear definition
+- Key concepts explained
+- Examples or analogies  
+- How it connects to other biology concepts
+- Study tips if relevant
+
+Base your answer on the course materials provided."""}
                     ],
-                    max_tokens=500,
-                    temperature=0.7
+                    max_tokens=800,
+                    temperature=0.3
                 )
                 
                 answer = response.choices[0].message.content
@@ -362,17 +678,8 @@ async def ask_question(request: QuestionRequest):
                 # Add a helpful note about the content
                 answer += f"💡 I found {len(sources)} relevant sections in your course materials. "
                 
-                # Try to provide a basic answer for common questions
-                question_lower = request.question.lower()
-                if 'what is' in question_lower or 'define' in question_lower:
-                    if 'glycolysis' in question_lower:
-                        answer += "\n\n📚 **Quick Definition**: Glycolysis is a metabolic pathway that breaks down glucose to produce ATP (energy) and pyruvate. It occurs in the cytoplasm of cells and is the first step in cellular respiration."
-                    elif 'photosynthesis' in question_lower:
-                        answer += "\n\n📚 **Quick Definition**: Photosynthesis is the process by which plants convert light energy, carbon dioxide, and water into glucose and oxygen."
-                    elif 'mitosis' in question_lower:
-                        answer += "\n\n📚 **Quick Definition**: Mitosis is the process of cell division that produces two identical diploid cells from one parent cell."
-                    elif 'dna' in question_lower:
-                        answer += "\n\n📚 **Quick Definition**: DNA (Deoxyribonucleic Acid) is a molecule that carries genetic instructions for the development and function of living organisms."
+                # Enhanced educational responses for better teaching
+                answer = format_educational_response(request.question, unique_results, sources)
                 
                 answer += "\n\n🤖 **Note**: For more detailed AI-powered analysis and explanations, the OpenAI integration needs to be configured on the server."
                 
