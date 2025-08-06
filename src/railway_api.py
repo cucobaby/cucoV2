@@ -120,8 +120,23 @@ Requirements:
 
 # --- Health Check ---
 @app.get("/")
+async def root():
+    """Simple root endpoint"""
+    return {"status": "Canvas AI Assistant API", "version": "4.0.0"}
+
+@app.get("/health")
 async def health_check():
-    """Health check endpoint with ChromaDB status"""
+    """Fast health check optimized for Railway deployment"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "4.0.0",
+        "message": "API is running"
+    }
+
+@app.get("/health/detailed")
+async def detailed_health_check():
+    """Detailed health check with service testing"""
     health_status = {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
@@ -447,4 +462,14 @@ async def debug_chromadb():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    
+    # Railway optimization
+    log_level = "info" if os.getenv("RAILWAY_ENVIRONMENT") else "debug"
+    
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=port,
+        log_level=log_level,
+        access_log=False  # Reduce logging overhead
+    )
