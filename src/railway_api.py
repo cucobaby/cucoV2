@@ -57,139 +57,103 @@ class ContentUploadResponse(BaseModel):
     content_id: str
     chunks_created: int
 
-# --- Enhanced Response Generation ---
+# --- Enhanced Response Generation (Core Assistant Integration) ---
 def format_educational_response(question: str, unique_results: List, sources: List) -> str:
-    """Generate comprehensive, well-structured response using OpenAI"""
+    """Generate comprehensive, well-structured response using improved OpenAI integration"""
     if not unique_results:
         return "No relevant information found in your uploaded materials. Please upload course content related to this topic."
     
-    # Extract and prioritize relevant content with smarter filtering
-    relevant_content = []
-    vocabulary_content = []
-    
-    for doc, metadata in unique_results[:8]:  # Get more content chunks for better coverage
+    # Extract and prepare context chunks
+    context_chunks = []
+    for doc, metadata in unique_results[:5]:  # Use top 5 chunks
         content = doc.strip()
         
-        if len(content) < 50:  # Skip very short content
-            continue
-            
-        # Categorize content types
-        content_lower = content.lower()
-        
-        # Skip only truly unhelpful fragments
-        if (content.startswith(("see sg", "draw", "your diagram")) or
+        # Skip very short or unhelpful content
+        if (len(content) < 50 or 
+            content.startswith(("see sg", "draw", "your diagram")) or
             content.endswith("...") or
             content.startswith("for practice applying this material")):
             continue
-        
-        # Prioritize explanatory content over vocabulary lists
-        if any(keyword in content_lower for keyword in [
-            "process", "mechanism", "occurs", "involves", "steps", "during",
-            "enzyme", "protein", "molecule", "reaction", "synthesis"
-        ]):
-            relevant_content.append(content)
-        # Include vocabulary/concept definitions as secondary content
-        elif any(keyword in content_lower for keyword in [
-            "definition", "structure", "function", "role", "consists of"
-        ]):
-            vocabulary_content.append(content)
-        # Include other substantial content
-        elif len(content) > 100:
-            relevant_content.append(content)
+            
+        context_chunks.append({
+            'content': content,
+            'source': metadata.get('title', 'Unknown Source'),
+            'chapter': metadata.get('content_type', 'study_guide'),
+            'lectures': metadata.get('source', 'course_material'),
+            'relevance_score': 1.0 - metadata.get('distance', 0.5)  # Convert distance to relevance
+        })
     
-    # Combine prioritized content
-    all_content = relevant_content + vocabulary_content[:3]  # Limit vocab content
-    
-    if not all_content:
+    if not context_chunks:
         return "No relevant information found in your course materials. The content may be too fragmented or focused on learning objectives rather than explanations."
     
-    # Use OpenAI for comprehensive response generation with better error handling
+    # Use improved OpenAI integration with proper error handling
     try:
         import openai
         
-        # Check if API key exists
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            print("ERROR: No OpenAI API key found in environment variables")
-            raise Exception("No OpenAI API key configured")
+            return _create_fallback_response(question, context_chunks)
         
-        print(f"DEBUG: OpenAI API key found (first 10 chars): {api_key[:10]}...")
-        
-        # Prioritize longer, more explanatory content
-        all_content.sort(key=lambda x: (
-            len(x), 
-            # Boost explanatory content
-            10 if any(word in x.lower() for word in ["process", "mechanism", "during", "involves"]) else 0
-        ), reverse=True)
-        
-        combined_content = "\n\n".join(all_content[:5])  # Use top 5 chunks
-        
-        prompt = f"""You are an educational AI assistant helping a biology student. Based on the course materials provided, create a comprehensive explanation for: "{question}"
-
-Course Materials:
-{combined_content[:4000]}
-
-Instructions:
-1. Create a complete, educational explanation that fully answers the question
-2. Use the course material as your primary source but synthesize it into a coherent explanation
-3. Structure your response with clear headings and bullet points
-4. Include step-by-step processes if applicable
-5. Define key terms and concepts
-6. Ignore study guide instructions (like "draw", "diagram", "complete quiz") and focus on the actual content
-7. Aim for 400-600 words with clear organization
-8. If the material contains vocabulary lists, incorporate those terms into your explanation naturally
-
-Format your response as a complete educational explanation, not as fragmented study notes."""
-
-        # Fixed OpenAI client initialization - use proper v1.0+ syntax
         client = openai.OpenAI(api_key=api_key)
         
-        print(f"DEBUG: Calling OpenAI with {len(combined_content)} characters of content...")
+        # Build context for the prompt
+        context_text = ""
+        for i, chunk in enumerate(context_chunks, 1):
+            context_text += f"\n--- Source {i}: {chunk['source']} ---\n"
+            context_text += chunk['content']
+            context_text += "\n"
         
+        # Biology-focused system prompt
+        system_prompt = """You are an expert biology tutor helping students understand complex biological concepts. 
+Your responses should be:
+- Clear and educational
+- Well-structured with headings and bullet points
+- Include step-by-step processes when applicable
+- Define key terms and concepts
+- Synthesize information from multiple sources into coherent explanations
+- Focus on understanding rather than memorization"""
+
+        user_prompt = f"""Question: {question}
+
+Course Content:
+{context_text}
+
+Please provide a comprehensive, well-structured educational answer based on this course content. Aim for 400-600 words with clear organization."""
+
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
             max_tokens=1200,
             temperature=0.3
         )
         
-        ai_response = response.choices[0].message.content.strip()
-        print(f"DEBUG: OpenAI response received: {len(ai_response)} characters")
-        return ai_response
+        return response.choices[0].message.content.strip()
         
     except Exception as e:
-        error_msg = str(e)
-        print(f"DETAILED OpenAI error: {error_msg}")
-        print(f"ERROR TYPE: {type(e).__name__}")
-        
-        # More detailed error analysis
-        if "api key" in error_msg.lower():
-            print("ERROR ANALYSIS: API key issue")
-        elif "timeout" in error_msg.lower():
-            print("ERROR ANALYSIS: Request timeout")
-        elif "quota" in error_msg.lower() or "limit" in error_msg.lower():
-            print("ERROR ANALYSIS: API quota/rate limit exceeded")
-        elif "model" in error_msg.lower():
-            print("ERROR ANALYSIS: Model access issue")
-        else:
-            print(f"ERROR ANALYSIS: Unknown error - {error_msg}")
-        
-        # Better fallback response with improved content selection
-        if len(all_content) > 0:
-            # Create a more structured fallback response
-            explanatory_content = [content for content in all_content if len(content) > 150][:3]
-            
-            if explanatory_content:
-                combined = "\n\n".join(explanatory_content)
-                return f"""Based on your course materials, here's what I found about {question}:
+        print(f"OpenAI API error: {e}")
+        return _create_fallback_response(question, context_chunks)
 
-{combined[:1500]}
-
-Note: OpenAI processing failed ({error_msg}). This is a direct excerpt from your study materials."""
-            else:
-                return f"Found course material related to '{question}' but unable to process it into a comprehensive explanation. OpenAI Error: {error_msg}"
-        
-        return f"Unable to generate a response due to API error: {error_msg}"
+def _create_fallback_response(question: str, context_chunks: List) -> str:
+    """Create structured fallback response when AI is not available"""
+    if not context_chunks:
+        return f"I couldn't find relevant content to answer your question about '{question}'. Try rephrasing or asking about a different topic."
+    
+    # Create structured answer from context chunks
+    answer_parts = [f"Based on your course materials, here's what I found about '{question}':\n"]
+    
+    for i, chunk in enumerate(context_chunks[:3], 1):
+        answer_parts.append(f"\n**From {chunk['source']}:**")
+        content = chunk['content']
+        if len(content) > 400:
+            content = content[:400] + "..."
+        answer_parts.append(content)
+    
+    answer_parts.append(f"\n*Note: This response was compiled directly from your study materials. For more comprehensive explanations, ensure OpenAI integration is properly configured.*")
+    
+    return "\n".join(answer_parts)
 
 # --- Auto-load Knowledge Base ---
 async def load_persistent_knowledge_base():
@@ -315,21 +279,13 @@ async def detailed_health_check():
         health_status["services"]["chromadb"] = f"error: {str(e)}"
         health_status["status"] = "degraded"
     
-    # Test OpenAI connection
+    # Check OpenAI API key availability (without testing API call)
     try:
-        import openai
         api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
-            # Simple test call to verify API key works with proper v1.0+ syntax
-            client = openai.OpenAI(api_key=api_key)
-            test_response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": "Say 'API test successful'"}],
-                max_tokens=10
-            )
-            health_status["services"]["openai"] = f"connected (test: {test_response.choices[0].message.content})"
+            health_status["services"]["openai"] = "API key configured"
         else:
-            health_status["services"]["openai"] = "error: No API key found"
+            health_status["services"]["openai"] = "No API key found"
     except Exception as e:
         health_status["services"]["openai"] = f"error: {str(e)}"
         health_status["status"] = "degraded"
