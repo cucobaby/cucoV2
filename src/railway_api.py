@@ -89,8 +89,9 @@ def format_educational_response(question: str, unique_results: List, sources: Li
     response += "\n## 🎯 Study Tips\n"
     response += generate_study_tips(question, topic, unique_results)
     
-    response += "\n---\n💡 **Remember**: Understanding concepts deeply is better than memorizing facts!\n"
-    response += "🤖 **Note**: For AI-powered detailed explanations, OpenAI integration is needed."
+    response += "\n---\n� **Important**: This response is based ONLY on your uploaded course materials.\n"
+    response += "�💡 **Remember**: Understanding concepts deeply is better than memorizing facts!\n"
+    response += "🤖 **Note**: When available, OpenAI helps format responses but adds no external knowledge."
     
     return response
 
@@ -611,31 +612,31 @@ async def ask_question(request: QuestionRequest):
                 response = openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": """You are an expert biology tutor helping students learn. Your job is to:
-1. TEACH concepts clearly with definitions and explanations
-2. Break down complex topics into understandable parts  
-3. Use analogies and examples when helpful
-4. Structure responses with clear headings and bullet points
-5. Connect concepts to broader biological principles
-6. Be encouraging and supportive
+                        {"role": "system", "content": """You are a formatting assistant. Your ONLY job is to take course material content and restructure it educationally for students. You must:
 
-Always start with a clear definition, then explain key points, and provide examples."""},
+CRITICAL RULES:
+1. Use ONLY the information provided in the course materials
+2. Do NOT add any knowledge beyond what's given
+3. Do NOT make up definitions, facts, or explanations
+4. If information is missing, say "This information is not covered in your course materials"
+
+Your formatting tasks:
+- Organize content with clear headings
+- Break information into digestible sections
+- Improve readability and flow
+- Add encouraging language for learning
+- Structure as: Definition → Key Points → Examples (only if provided in materials)
+
+You are NOT a biology expert - you are purely a content formatter."""},
                         {"role": "user", "content": f"""Question: {request.question}
 
-Course Material Context:
+Course Materials to Format:
 {context}
 
-Please provide a comprehensive, educational response that teaches the student about this topic. Structure your answer with:
-- Clear definition
-- Key concepts explained
-- Examples or analogies  
-- How it connects to other biology concepts
-- Study tips if relevant
-
-Base your answer on the course materials provided."""}
+Please reformat this course material content to answer the student's question. Use ONLY the information provided above. Structure it educationally with clear headings, but do not add any information that isn't in the course materials."""}
                     ],
                     max_tokens=800,
-                    temperature=0.3
+                    temperature=0.1  # Lower temperature for more faithful formatting
                 )
                 
                 answer = response.choices[0].message.content
@@ -650,33 +651,8 @@ Base your answer on the course materials provided."""}
             except Exception as openai_error:
                 print(f"⚠️ OpenAI failed: {openai_error}")
                 
-                # Enhanced fallback with better content processing
-                answer = f"Based on your course materials, I found information about '{request.question}':\n\n"
-                
-                # Process and format the retrieved content better
-                for i, (doc, source) in enumerate(unique_results[:3]):
-                    # Clean and extract meaningful content
-                    content = doc.strip()
-                    
-                    # Try to find complete sentences
-                    sentences = content.split('. ')
-                    meaningful_content = ""
-                    
-                    # Look for sentences that might contain definitions or explanations
-                    for sentence in sentences:
-                        if len(sentence) > 30:  # Skip very short fragments
-                            meaningful_content += sentence.strip() + ". "
-                            if len(meaningful_content) > 300:  # Limit length
-                                break
-                    
-                    if meaningful_content:
-                        answer += f"**{source['title']}:**\n{meaningful_content}\n\n"
-                    else:
-                        # Fallback to first 250 characters if no good sentences found
-                        answer += f"**{source['title']}:**\n{content[:250]}{'...' if len(content) > 250 else ''}\n\n"
-                
-                # Add a helpful note about the content
-                answer += f"💡 I found {len(sources)} relevant sections in your course materials. "
+                # Use our educational formatting system (course materials only)
+                answer = format_educational_response(request.question, unique_results, sources)
                 
                 # Enhanced educational responses for better teaching
                 answer = format_educational_response(request.question, unique_results, sources)
