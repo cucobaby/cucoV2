@@ -19,7 +19,7 @@
         "https://*.instructure.com/*",
         "https://*.canvas.com/*"
       ],
-      "js": ["content-new.js"],
+      "js": ["content.js"],
       "css": ["styles.css"]
     }
   ]
