@@ -636,44 +636,87 @@ async def ask_question(request: QuestionRequest):
         try:
             collection = client.get_collection("canvas_content")
             
-            # Enhanced search for relevant content
+            # Enhanced search for relevant content with multiple strategies
             search_terms = [request.question]
             
             # Extract key terms for better search
             question_lower = request.question.lower()
-            if 'what is' in question_lower:
-                # Extract the main term after "what is"
-                term = question_lower.split('what is')[-1].strip()
+            
+            # Strategy 1: Direct term extraction
+            if 'what is' in question_lower or 'what are' in question_lower:
+                term = question_lower.replace('what is', '').replace('what are', '').strip()
                 if term:
                     search_terms.append(term)
             elif 'define' in question_lower:
-                # Extract term after "define"
                 term = question_lower.split('define')[-1].strip()
                 if term:
                     search_terms.append(term)
+            elif 'tell me' in question_lower:
+                term = question_lower.replace('tell me about', '').replace('tell me the', '').replace('tell me', '').strip()
+                if term:
+                    search_terms.append(term)
             
-            # Search with multiple terms
+            # Strategy 2: Topic-specific expansions for biology concepts
+            if 'protein structure' in question_lower:
+                search_terms.extend([
+                    'protein structure',
+                    'amino acid sequence',
+                    'primary structure',
+                    'secondary structure',
+                    'tertiary structure', 
+                    'quaternary structure',
+                    'alpha helix',
+                    'beta sheet',
+                    'protein folding',
+                    'peptide bonds'
+                ])
+            elif 'levels of protein' in question_lower:
+                search_terms.extend([
+                    'primary secondary tertiary quaternary',
+                    'protein structure levels',
+                    'amino acid sequence',
+                    'protein folding',
+                    'peptide'
+                ])
+            
+            # Strategy 3: Keyword extraction from question
+            keywords = [word for word in question_lower.split() 
+                       if len(word) > 3 and word not in ['what', 'tell', 'about', 'the', 'are', 'is', 'how', 'why']]
+            search_terms.extend(keywords)
+            
+            # Search with multiple terms and combine results intelligently
             all_results = []
             for term in search_terms:
                 results = collection.query(
                     query_texts=[term],
-                    n_results=min(3, collection.count())
+                    n_results=min(5, collection.count())  # Get more results per term
                 )
                 if results['documents'][0]:
-                    all_results.extend(zip(results['documents'][0], results['metadatas'][0]))
+                    # Add term relevance score
+                    for doc, metadata in zip(results['documents'][0], results['metadatas'][0]):
+                        all_results.append((doc, metadata, term))
             
-            # Remove duplicates and limit results
+            # Remove duplicates and prioritize results
             seen_docs = set()
             unique_results = []
-            for doc, metadata in all_results:
+            
+            # First pass: prioritize results that match multiple search terms
+            for doc, metadata, search_term in all_results:
                 doc_key = doc[:100]  # Use first 100 chars as key
                 if doc_key not in seen_docs:
+                    # Check how many search terms this document matches
+                    relevance_score = sum(1 for term in search_terms if term.lower() in doc.lower())
+                    
                     seen_docs.add(doc_key)
-                    unique_results.append((doc, metadata))
-                    if len(unique_results) >= 5:
-                        break
+                    unique_results.append((doc, metadata, relevance_score))
             
-            if not unique_results:
+            # Sort by relevance score (descending)
+            unique_results.sort(key=lambda x: x[2], reverse=True)
+            
+            # Take top results
+            final_results = [(doc, metadata) for doc, metadata, score in unique_results[:8]]
+            
+            if not final_results:
                 return QuestionResponse(
                     answer="I don't have any relevant course materials for your question. Please upload relevant content using the 🤖 buttons first.",
                     confidence=0.0,
@@ -681,12 +724,12 @@ async def ask_question(request: QuestionRequest):
                     response_time=(datetime.now() - start_time).total_seconds()
                 )
             
-            # Prepare context from search results
+            # Prepare context from search results with better organization
             context_parts = []
             sources = []
             
-            for i, (doc, metadata) in enumerate(unique_results):
-                context_parts.append(f"Content {i+1}: {doc}")
+            for i, (doc, metadata) in enumerate(final_results):
+                context_parts.append(f"Course Material {i+1} ({metadata.get('title', 'Unknown')}):\n{doc}")
                 sources.append({
                     "title": metadata.get('title', 'Unknown'),
                     "source": metadata.get('source', 'Unknown'),
@@ -709,28 +752,32 @@ async def ask_question(request: QuestionRequest):
                 response = openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": """You are a formatting assistant. Your ONLY job is to take course material content and restructure it educationally for students. You must:
+                        {"role": "system", "content": """You are an educational content formatter specializing in biology. Your job is to take course material content and create clear, educational responses for students.
 
 CRITICAL RULES:
 1. Use ONLY the information provided in the course materials
 2. Do NOT add any knowledge beyond what's given
-3. Do NOT make up definitions, facts, or explanations
-4. If information is missing, say "This information is not covered in your course materials"
+3. When asked about concepts like "levels of protein structure," look for scattered information about primary, secondary, tertiary, and quaternary structures in the materials
+4. Synthesize related information to answer the question directly
+5. If specific information is incomplete, work with what's available
 
-Your formatting tasks:
-- Organize content with clear headings
-- Break information into digestible sections
-- Improve readability and flow
-- Add encouraging language for learning
-- Structure as: Definition → Key Points → Examples (only if provided in materials)
+Your formatting approach:
+- Start with a direct answer to the question when possible
+- Organize related information from the course materials
+- Use clear headings and bullet points
+- Connect scattered information to form coherent explanations
+- Be educational but stick to the provided content
 
-You are NOT a biology expert - you are purely a content formatter."""},
+For biology questions specifically:
+- If asked about protein structure levels, look for mentions of amino acid sequences, folding, alpha helices, beta sheets
+- Connect concepts even if they appear in different parts of the materials
+- Explain relationships between related concepts found in the materials"""},
                         {"role": "user", "content": f"""Question: {request.question}
 
-Course Materials to Format:
+Course Materials Available:
 {context}
 
-Please reformat this course material content to answer the student's question. Use ONLY the information provided above. Structure it educationally with clear headings, but do not add any information that isn't in the course materials."""}
+Please create an educational response that directly answers the student's question using ONLY the information provided above. If the question is about protein structure levels, synthesize any mentions of primary structure (amino acid sequence), secondary structure (alpha helix, beta sheet), tertiary structure (folding), or quaternary structure (multiple proteins) found in the materials."""}
                     ],
                     max_tokens=800,
                     temperature=0.1  # Lower temperature for more faithful formatting
