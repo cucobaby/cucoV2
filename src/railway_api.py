@@ -1,9 +1,8 @@
-# Improved Railway API
+# Improved Railway API - Optimized for fast startup
 import os
 import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-import chromadb
 import tempfile
 import uuid
 from pathlib import Path
@@ -14,14 +13,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-# OpenAI import
-import openai
+# Defer heavy imports until needed
+# import chromadb - loaded when needed
+# import openai - loaded when needed
+# Document processing imports - loaded when needed
 
-# Document processing imports
-from PyPDF2 import PdfReader
-from docx import Document
-import csv
-from io import StringIO, BytesIO
+# --- FastAPI App ---
+app = FastAPI(title="CucoV2 Educational Assistant API - Clean v2", version="4.1.0")
+# import chromadb - loaded when needed
+# import openai - loaded when needed
+# Document processing imports - loaded when needed
 
 # --- Configuration ---
 app = FastAPI(title="CucoV2 Educational Assistant API - Clean v2", version="4.1.0")
@@ -79,6 +80,7 @@ def format_educational_response(question: str, unique_results: List, sources: Li
     # Use OpenAI for concise formatting only
     if relevant_content:
         try:
+            import openai
             combined_content = "\n".join(relevant_content[:2])  # Limit content
             
             prompt = f"""Based on this course content, provide a direct answer to: "{question}"
@@ -125,14 +127,9 @@ async def root():
     return {"status": "Canvas AI Assistant API", "version": "4.0.0"}
 
 @app.get("/health")
-async def health_check():
-    """Fast health check optimized for Railway deployment"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "version": "4.0.0",
-        "message": "API is running"
-    }
+def health_check():
+    """Minimal health check for Railway"""
+    return {"status": "ok"}
 
 @app.get("/health/detailed")
 async def detailed_health_check():
@@ -359,6 +356,9 @@ async def clear_all_documents():
 def extract_pdf_text(content: bytes) -> str:
     """Extract text from PDF content"""
     try:
+        from io import BytesIO
+        from PyPDF2 import PdfReader
+        
         pdf_file = BytesIO(content)
         reader = PdfReader(pdf_file)
         text = ""
@@ -372,6 +372,9 @@ def extract_pdf_text(content: bytes) -> str:
 def extract_docx_text(content: bytes) -> str:
     """Extract text from DOCX content"""
     try:
+        from io import BytesIO
+        from docx import Document
+        
         doc_file = BytesIO(content)
         doc = Document(doc_file)
         text = ""
@@ -385,6 +388,9 @@ def extract_docx_text(content: bytes) -> str:
 def extract_csv_text(content: bytes) -> str:
     """Extract text from CSV content"""
     try:
+        import csv
+        from io import StringIO
+        
         csv_text = content.decode('utf-8')
         csv_reader = csv.reader(StringIO(csv_text))
         text = ""
