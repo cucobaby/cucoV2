@@ -1,12 +1,15 @@
-// Canvas AI Assistant - Simple Content Scraper
-// Adds a single "Add Content" button to Canvas pages
-
-console.log('?? Canvas AI Assistant initialized');
-console.log('?? URL:', window.location.href);
+// Canvas AI Assistant - Clean Version
+console.log('🤖 Canvas AI Assistant v4.0.0 - CLEAN VERSION LOADED');
 
 const API_BASE_URL = 'https://cucov2-production.up.railway.app';
 
-class CanvasContentScraper {
+// Kill any existing instances
+if (window.canvasAIAssistant) {
+    console.log('🗑️ Destroying existing assistant instance');
+    delete window.canvasAIAssistant;
+}
+
+class CanvasAIAssistant {
     constructor() {
         this.isInitialized = false;
         this.init();
@@ -15,212 +18,269 @@ class CanvasContentScraper {
     async init() {
         if (this.isInitialized) return;
         
-        console.log('?? Initializing Canvas Content Scraper...');
+        console.log('🤖 Canvas AI Assistant initializing...');
         
         // Wait for page to load
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.setupButton());
+            document.addEventListener('DOMContentLoaded', () => this.setupUI());
         } else {
-            this.setupButton();
+            this.setupUI();
         }
         
         this.isInitialized = true;
     }
 
-    setupButton() {
-        console.log('?? Setting up Add Content button...');
-        
-        // Only add button if we're on a Canvas course page with content
-        if (this.isCanvasContentPage()) {
-            this.addContentButton();
-        } else {
-            console.log('?? Not a Canvas content page, skipping button');
-        }
+    setupUI() {
+        console.log('🎯 Setting up Canvas AI Assistant...');
+        this.createFloatingButton();
     }
 
-    isCanvasContentPage() {
-        const url = window.location.href;
-        
-        // Check if we're in a Canvas course
-        const isInCourse = url.includes('/courses/');
-        
-        // Check for content-rich pages
-        const contentPages = [
-            '/pages/',
-            '/assignments/',
-            '/quizzes/',
-            '/discussion_topics/',
-            '/modules/',
-            '/announcements/',
-            '/syllabus'
-        ];
-        
-        const isContentPage = contentPages.some(pattern => url.includes(pattern));
-        
-        // Also check if page has educational content
-        const hasEducationalContent = this.detectEducationalContent();
-        
-        const shouldShow = isInCourse && (isContentPage || hasEducationalContent);
-        
-        console.log('?? Page check: inCourse=' + isInCourse + ', contentPage=' + isContentPage + ', hasEducation=' + hasEducationalContent + ', result=' + shouldShow);
-        
-        return shouldShow;
-    }
-
-    detectEducationalContent() {
-        // Look for Canvas content containers
-        const contentSelectors = [
-            '.user_content',
-            '.show-content',
-            '.assignment-description',
-            '.page-content',
-            '.wiki-page-content',
-            '.course-content'
-        ];
-        
-        for (const selector of contentSelectors) {
-            const element = document.querySelector(selector);
-            if (element && element.textContent.trim().length > 100) {
-                console.log('? Found educational content via: ' + selector);
-                return true;
-            }
-        }
-        
-        // Check for educational keywords
-        const pageText = document.body.textContent.toLowerCase();
-        const educationalKeywords = [
-            'study guide', 'learning objectives', 'assignment', 'quiz',
-            'chapter', 'lesson', 'vocabulary', 'definition'
-        ];
-        
-        const foundKeywords = educationalKeywords.filter(keyword => 
-            pageText.includes(keyword)
-        );
-        
-        if (foundKeywords.length >= 2) {
-            console.log('? Found educational keywords: ' + foundKeywords.join(', '));
-            return true;
-        }
-        
-        return false;
-    }
-
-    addContentButton() {
+    createFloatingButton() {
         // Remove existing button if present
-        const existingButton = document.getElementById('canvas-add-content-btn');
-        if (existingButton) {
-            existingButton.remove();
-        }
+        const existingButton = document.getElementById('canvas-ai-assistant-btn');
+        if (existingButton) existingButton.remove();
 
-        // Find the best place to add the button
-        const targetContainer = this.findButtonContainer();
-        if (!targetContainer) {
-            console.log('?? No suitable container found for button');
-            return;
-        }
-
-        // Create the button
         const button = document.createElement('div');
-        button.id = 'canvas-add-content-btn';
-        button.className = 'canvas-add-content-button';
+        button.id = 'canvas-ai-assistant-btn';
+        button.innerHTML = `
+            <div class="ai-assistant-icon">🤖</div>
+            <span>AI Assistant</span>
+        `;
+        button.className = 'canvas-ai-floating-btn';
         
-        button.innerHTML = '<div class="button-content"><div class="button-icon">??</div><div class="button-text"><strong>Add Content</strong><span>Upload this page to AI knowledge base</span></div></div>';
-
-        // Add click handler
-        button.addEventListener('click', () => this.handleAddContent());
-
-        // Insert the button
-        if (targetContainer.firstChild) {
-            targetContainer.insertBefore(button, targetContainer.firstChild);
-        } else {
-            targetContainer.appendChild(button);
-        }
-
         // Add styles
-        this.addButtonStyles();
-
-        console.log('? Add Content button added successfully');
+        button.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            z-index: 10000;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+        
+        button.addEventListener('click', () => this.toggleAssistantPanel());
+        
+        document.body.appendChild(button);
+        console.log('✅ Floating button created');
     }
 
-    findButtonContainer() {
-        // Try to find the best container for the button
-        const candidates = [
-            '.user_content',
-            '.show-content',
-            '.assignment-description',
-            '.page-content',
-            '.wiki-page-content',
-            '#content',
-            '.ic-Layout-contentMain',
-            'main[role="main"]',
-            '.content-wrap'
-        ];
-
-        for (const selector of candidates) {
-            const container = document.querySelector(selector);
-            if (container && container.textContent.trim().length > 100) {
-                console.log('? Found button container: ' + selector);
-                return container;
-            }
-        }
-
-        // Fallback: create container at top of page
-        const fallback = document.createElement('div');
-        fallback.style.cssText = 'margin: 16px; padding: 0;';
+    toggleAssistantPanel() {
+        let panel = document.getElementById('canvas-ai-panel');
         
-        const contentArea = document.querySelector('#content') || 
-                           document.querySelector('main') || 
-                           document.body;
-        
-        if (contentArea.firstChild) {
-            contentArea.insertBefore(fallback, contentArea.firstChild);
+        if (panel) {
+            panel.remove();
         } else {
-            contentArea.appendChild(fallback);
+            this.createAssistantPanel();
         }
-        
-        console.log('? Created fallback container');
-        return fallback;
     }
 
-    addButtonStyles() {
-        // Only add styles once
-        if (document.getElementById('canvas-content-styles')) {
-            return;
+    createAssistantPanel() {
+        const panel = document.createElement('div');
+        panel.id = 'canvas-ai-panel';
+        panel.className = 'canvas-ai-panel';
+        
+        panel.innerHTML = `
+            <div class="ai-panel-header">
+                <h3>🤖 Canvas AI Assistant</h3>
+                <button class="ai-panel-close">&times;</button>
+            </div>
+            <div class="ai-panel-content">
+                <div class="ai-feature-section">
+                    <h4>📤 Upload Current Page</h4>
+                    <p>Extract and upload this Canvas page content to the AI knowledge base.</p>
+                    <button id="analyze-page-btn" class="ai-feature-btn primary">
+                        📄 Add Page to Knowledge Base
+                    </button>
+                    <div id="analysis-result" class="ai-result-area"></div>
+                </div>
+                
+                <div class="ai-feature-section">
+                    <h4>🤖 Ask Cuco</h4>
+                    <div class="ai-question-input">
+                        <textarea id="question-input" placeholder="Ask Cuco a question about your uploaded content..."></textarea>
+                        <button id="ask-cuco-btn" class="ai-feature-btn cuco-btn">Ask Cuco</button>
+                    </div>
+                    <div id="question-result" class="ai-result-area"></div>
+                </div>
+            </div>
+        `;
+        
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .canvas-ai-panel {
+                position: fixed;
+                top: 50px;
+                right: 20px;
+                width: 420px;
+                max-height: 80vh;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                z-index: 10001;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                border: 1px solid #e0e0e0;
+                overflow: hidden;
+            }
+            .ai-panel-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 16px 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .ai-panel-header h3 {
+                margin: 0;
+                font-size: 18px;
+                font-weight: 600;
+            }
+            .ai-panel-close {
+                background: none;
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                padding: 0;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: background 0.2s;
+            }
+            .ai-panel-close:hover {
+                background: rgba(255,255,255,0.2);
+            }
+            .ai-panel-content {
+                padding: 20px;
+                max-height: 60vh;
+                overflow-y: auto;
+            }
+            .ai-feature-section {
+                margin-bottom: 24px;
+                padding-bottom: 20px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            .ai-feature-section:last-child {
+                border-bottom: none;
+                margin-bottom: 0;
+            }
+            .ai-feature-section h4 {
+                margin: 0 0 12px 0;
+                color: #333;
+                font-size: 16px;
+                font-weight: 600;
+            }
+            .ai-feature-section p {
+                margin: 0 0 16px 0;
+                color: #666;
+                font-size: 14px;
+                line-height: 1.4;
+            }
+            .ai-feature-btn {
+                background: #667eea;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.2s;
+                width: 100%;
+                margin-bottom: 12px;
+            }
+            .ai-feature-btn:hover {
+                background: #5a67d8;
+                transform: translateY(-1px);
+            }
+            .ai-feature-btn.cuco-btn {
+                background: #ff4757;
+            }
+            .ai-feature-btn.cuco-btn:hover {
+                background: #ff3742;
+            }
+            .ai-question-input textarea {
+                width: 100%;
+                padding: 12px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 14px;
+                resize: vertical;
+                min-height: 80px;
+                margin-bottom: 12px;
+                font-family: inherit;
+                box-sizing: border-box;
+            }
+            .ai-question-input textarea:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+            .ai-result-area {
+                margin-top: 12px;
+                padding: 12px;
+                border-radius: 8px;
+                background: #f8f9fa;
+                border: 1px solid #e9ecef;
+                font-size: 14px;
+                line-height: 1.4;
+                min-height: 20px;
+            }
+            .ai-loading {
+                color: #667eea;
+                font-style: italic;
+            }
+        `;
+        
+        if (!document.getElementById('canvas-ai-styles')) {
+            style.id = 'canvas-ai-styles';
+            document.head.appendChild(style);
         }
-
-        const styles = document.createElement('style');
-        styles.id = 'canvas-content-styles';
-        styles.textContent = '.canvas-add-content-button { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 16px 20px; margin: 16px 0; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3); transition: all 0.3s ease; border: none; font-family: inherit; max-width: 400px; } .canvas-add-content-button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4); background: linear-gradient(135deg, #45a049 0%, #4CAF50 100%); } .button-content { display: flex; align-items: center; gap: 12px; } .button-icon { font-size: 24px; background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 50%; min-width: 40px; text-align: center; } .button-text { flex: 1; } .button-text strong { display: block; font-size: 16px; font-weight: 600; margin-bottom: 4px; } .button-text span { font-size: 13px; opacity: 0.9; display: block; } .canvas-add-content-button.loading { opacity: 0.7; cursor: not-allowed; } .canvas-add-content-button.success { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); } .canvas-add-content-button.error { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }';
-
-        document.head.appendChild(styles);
+        
+        document.body.appendChild(panel);
+        
+        // Add event listeners
+        panel.querySelector('.ai-panel-close').addEventListener('click', () => panel.remove());
+        panel.querySelector('#analyze-page-btn').addEventListener('click', () => this.analyzeCurrentPage());
+        panel.querySelector('#ask-cuco-btn').addEventListener('click', () => this.askCuco());
+        
+        console.log('✅ Assistant panel created');
     }
 
-    async handleAddContent() {
-        const button = document.getElementById('canvas-add-content-btn');
-        const buttonText = button.querySelector('.button-text');
+    async analyzeCurrentPage() {
+        const resultDiv = document.getElementById('analysis-result');
+        resultDiv.innerHTML = '<div class="ai-loading">🔄 Extracting and uploading content...</div>';
         
-        // Show loading state
-        button.classList.add('loading');
-        buttonText.innerHTML = '<strong>Processing...</strong><span>Extracting content from page...</span>';
-
         try {
-            console.log('?? Starting content extraction...');
+            console.log('🤖 Starting content upload...');
             
-            // Extract content from the page
+            // Extract page content
             const content = this.extractPageContent();
             
             if (!content || content.trim().length < 50) {
                 throw new Error('No significant content found on this page');
             }
-
-            // Get page info
-            const pageTitle = this.getPageTitle();
-            const contentType = this.getContentType();
             
-            console.log('?? Uploading: "' + pageTitle + '" (' + content.length + ' characters)');
-
-            // Upload to knowledge base
-            const response = await fetch(API_BASE_URL + '/ingest-content', {
+            // Get page details
+            const pageTitle = document.title || 'Canvas Page';
+            const contentType = this.detectContentType();
+            
+            console.log(`📤 Uploading: "${pageTitle}" (${content.length} chars)`);
+            
+            // Upload to API
+            const response = await fetch(`${API_BASE_URL}/upload-content`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -231,136 +291,154 @@ class CanvasContentScraper {
                     source: 'canvas_chrome_extension',
                     url: window.location.href,
                     content_type: contentType,
-                    course_id: this.extractCourseId(),
                     timestamp: new Date().toISOString()
                 })
             });
-
-            if (!response.ok) {
-                throw new Error('Upload failed: ' + response.status);
-            }
-
-            const result = await response.json();
-            console.log('? Content uploaded successfully:', result);
-
-            // Show success state
-            button.classList.remove('loading');
-            button.classList.add('success');
-            buttonText.innerHTML = '<strong>? Content Added!</strong><span>Created ' + (result.chunks_created || 1) + ' chunks</span>';
-
-            // Reset button after 3 seconds
-            setTimeout(() => {
-                button.classList.remove('success');
-                buttonText.innerHTML = '<strong>Add Content</strong><span>Upload this page to AI knowledge base</span>';
-            }, 3000);
-
-        } catch (error) {
-            console.error('? Content upload error:', error);
             
-            // Show error state
-            button.classList.remove('loading');
-            button.classList.add('error');
-            buttonText.innerHTML = '<strong>? Upload Failed</strong><span>' + error.message + '</span>';
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Upload failed: HTTP ${response.status} - ${errorText}`);
+            }
+            
+            const result = await response.json();
+            
+            resultDiv.innerHTML = `
+                <div style="color: #28a745; font-weight: 600;">✅ Content Successfully Uploaded</div>
+                <div style="margin-top: 8px; font-size: 13px; color: #6c757d;">
+                    <div>📄 Title: ${pageTitle}</div>
+                    <div>📊 Chunks Created: ${result.chunks_created || 1}</div>
+                    <div>🆔 Content ID: ${result.content_id || 'N/A'}</div>
+                    <div>📏 Content Length: ${content.length.toLocaleString()} characters</div>
+                </div>
+            `;
+            
+            console.log('✅ Upload successful:', result);
+            
+        } catch (error) {
+            console.error('❌ Upload failed:', error);
+            resultDiv.innerHTML = `
+                <div style="color: #dc3545; font-weight: 600;">❌ Upload Failed</div>
+                <div style="margin-top: 8px; font-size: 13px; color: #6c757d;">
+                    Error: ${error.message}
+                </div>
+            `;
+        }
+    }
 
-            // Reset button after 4 seconds
-            setTimeout(() => {
-                button.classList.remove('error');
-                buttonText.innerHTML = '<strong>Add Content</strong><span>Upload this page to AI knowledge base</span>';
-            }, 4000);
+    async askCuco() {
+        const questionInput = document.getElementById('question-input');
+        const resultDiv = document.getElementById('question-result');
+        const question = questionInput.value.trim();
+        
+        if (!question) {
+            resultDiv.innerHTML = '<div style="color: #dc3545;">Please enter a question</div>';
+            return;
+        }
+        
+        resultDiv.innerHTML = '<div class="ai-loading">🤖 Cuco is thinking...</div>';
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/query`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    question: question,
+                    source: 'canvas_chrome_extension'
+                })
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Query failed: HTTP ${response.status} - ${errorText}`);
+            }
+            
+            const result = await response.json();
+            
+            resultDiv.innerHTML = `
+                <div style="border-left: 4px solid #ff4757; padding-left: 12px; margin-left: 4px;">
+                    <div style="color: #ff4757; font-weight: 600; margin-bottom: 8px;">🤖 Cuco's Answer:</div>
+                    <div style="color: #333; line-height: 1.5;">${result.answer || 'No answer found'}</div>
+                    ${result.sources && result.sources.length > 0 ? `
+                        <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e9ecef; font-size: 12px; color: #6c757d;">
+                            Sources: ${result.sources.join(', ')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            questionInput.value = '';
+            console.log('✅ Question answered:', result);
+            
+        } catch (error) {
+            console.error('❌ Query failed:', error);
+            resultDiv.innerHTML = `
+                <div style="color: #dc3545; font-weight: 600;">❌ Query Failed</div>
+                <div style="margin-top: 8px; font-size: 13px; color: #6c757d;">
+                    Error: ${error.message}
+                </div>
+            `;
         }
     }
 
     extractPageContent() {
-        console.log('?? Extracting educational content...');
-        
-        // Get page title
-        const title = this.getPageTitle();
-        
-        // Extract main content from Canvas content areas
-        const contentSelectors = [
-            '.user_content',
-            '.show-content',
-            '.assignment-description',
-            '.page-content',
-            '.wiki-page-content',
-            '.course-content',
-            '.syllabus-content',
-            '.announcement-content'
+        // Canvas-specific content selectors
+        const selectors = [
+            '.user_content',           // Canvas rich content areas
+            '.show-content',           // Assignment descriptions
+            '.assignment-description', // Assignment text
+            '.page-content',           // Canvas pages
+            '.wiki-page-content',      // Wiki pages
+            '.discussion-entry',       // Discussion posts
+            '.quiz-questions',         // Quiz content
+            '.module-item-details',    // Module descriptions
+            '.course-content'          // General course content
         ];
-
-        let extractedContent = [];
         
-        // Extract from priority selectors
-        for (const selector of contentSelectors) {
+        let content = '';
+        
+        // Try each selector
+        for (const selector of selectors) {
             const elements = document.querySelectorAll(selector);
-            elements.forEach(element => {
-                const text = this.cleanText(element.innerText);
-                if (text && text.length > 50) {
-                    extractedContent.push(text);
-                    console.log('? Extracted from ' + selector + ': ' + text.length + ' chars');
-                }
-            });
-        }
-
-        // If no content found, try broader extraction
-        if (extractedContent.length === 0) {
-            console.log('?? No priority content found, trying broader extraction...');
-            
-            const mainContent = document.querySelector('main') || 
-                               document.querySelector('#content') || 
-                               document.querySelector('.ic-Layout-contentMain');
-            
-            if (mainContent) {
-                const text = this.cleanText(mainContent.innerText);
-                if (text && text.length > 100) {
-                    extractedContent.push(text);
-                    console.log('? Extracted from main content: ' + text.length + ' chars');
+            for (const element of elements) {
+                const text = element.innerText || element.textContent;
+                if (text && text.trim().length > 20) {
+                    content += text.trim() + '\n\n';
                 }
             }
         }
-
-        // Build final content
-        let finalContent = '';
-        if (title) {
-            finalContent += 'TITLE: ' + title + '\n\n';
+        
+        // Fallback to main content areas if nothing found
+        if (!content.trim()) {
+            const fallbackSelectors = ['main', '#content', '.content', '#main-content'];
+            for (const selector of fallbackSelectors) {
+                const element = document.querySelector(selector);
+                if (element) {
+                    const text = element.innerText || element.textContent;
+                    if (text && text.trim().length > 50) {
+                        content = text.trim();
+                        break;
+                    }
+                }
+            }
         }
         
-        finalContent += 'CONTENT:\n';
-        finalContent += extractedContent.join('\n\n');
-
-        console.log('?? Final content: ' + finalContent.length + ' characters');
-        return finalContent;
-    }
-
-    cleanText(text) {
-        if (!text) return '';
+        // Final fallback to document title if nothing else
+        if (!content.trim()) {
+            content = document.title || 'No content found';
+        }
         
-        return text
-            .replace(/\s+/g, ' ') // Normalize whitespace
-            .replace(/\n\s*\n/g, '\n') // Remove excessive line breaks
+        // Clean up the content
+        content = content
+            .replace(/\s+/g, ' ')           // Normalize whitespace
+            .replace(/\n\s*\n/g, '\n')     // Remove extra line breaks
             .trim();
+        
+        return content;
     }
 
-    getPageTitle() {
-        // Try multiple strategies to get the best title
-        const titleSources = [
-            () => { const el = document.querySelector('h1'); return el ? el.innerText.trim() : null; },
-            () => { const el = document.querySelector('.page-title'); return el ? el.innerText.trim() : null; },
-            () => { const el = document.querySelector('.assignment-title'); return el ? el.innerText.trim() : null; },
-            () => document.title.trim()
-        ];
-
-        for (const getTitleFn of titleSources) {
-            const title = getTitleFn();
-            if (title && title.length > 3 && title.length < 200) {
-                return title;
-            }
-        }
-
-        return document.title || 'Canvas Page';
-    }
-
-    getContentType() {
+    detectContentType() {
         const url = window.location.href;
         
         if (url.includes('/assignments/')) return 'assignment';
@@ -370,17 +448,17 @@ class CanvasContentScraper {
         if (url.includes('/modules/')) return 'module';
         if (url.includes('/announcements/')) return 'announcement';
         if (url.includes('/syllabus')) return 'syllabus';
+        if (url.includes('/grades')) return 'gradebook';
+        if (url.includes('/files/')) return 'file';
         
-        return 'page';
-    }
-
-    extractCourseId() {
-        const urlMatch = window.location.href.match(/\/courses\/(\d+)/);
-        return urlMatch ? urlMatch[1] : null;
+        return 'page'; // Default
     }
 }
 
-// Initialize the content scraper
-console.log('?? Creating Canvas Content Scraper...');
-window.canvasContentScraper = new CanvasContentScraper();
-console.log('? Canvas Content Scraper initialized');
+// Initialize the assistant
+console.log('🚀 Initializing Canvas AI Assistant...');
+window.canvasAIAssistant = new CanvasAIAssistant();
+
+// Log current URL for debugging
+console.log('🌐 Current URL:', window.location.href);
+console.log('✅ Canvas AI Assistant v4.0.0 loaded successfully');

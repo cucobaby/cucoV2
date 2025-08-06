@@ -1,5 +1,5 @@
 // Canvas AI Assistant - Working Version
-console.log('🤖 Canvas AI Assistant v3.0.0 - WORKING VERSION LOADED');
+console.log('🤖 Canvas AI Assistant v3.5.0 - ENHANCED UI VERSION LOADED');
 
 const API_BASE_URL = 'https://cucov2-production.up.railway.app';
 
@@ -82,8 +82,8 @@ class CanvasAIAssistant {
             top: 50%;
             right: 20px;
             transform: translateY(-50%);
-            width: 400px;
-            max-height: 80vh;
+            width: 650px;
+            max-height: 85vh;
             background: white;
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
