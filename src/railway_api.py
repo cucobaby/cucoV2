@@ -89,13 +89,15 @@ def format_educational_response(question: str, unique_results: List, sources: Li
     # Use improved OpenAI integration with proper error handling
     try:
         import openai
+        from openai import OpenAI
         
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             print("No OpenAI API key found - using fallback response")
             return _create_fallback_response(question, context_chunks)
         
-        client = openai.OpenAI(api_key=api_key)
+        # Create client with explicit import to avoid issues
+        client = OpenAI(api_key=api_key)
         
         # Build context for the prompt
         context_text = ""
@@ -800,8 +802,14 @@ async def debug_openai_test():
             debug_info["error"] = "No API key in environment"
             return debug_info
             
-        client = openai.OpenAI(api_key=api_key)
-        debug_info["client_init"] = "successful"
+        # Try explicit initialization without any other parameters
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            debug_info["client_init"] = "successful"
+        except Exception as init_error:
+            debug_info["client_init_error"] = str(init_error)
+            return debug_info
         
         # Test simple API call
         response = client.chat.completions.create(

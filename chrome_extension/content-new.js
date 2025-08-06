@@ -1,10 +1,11 @@
 // Canvas AI Assistant - Working Version
-console.log('🤖 Canvas AI Assistant v3.5.2 - ENHANCED UI VERSION WITH CANVAS OVERRIDES LOADED');
+console.log('🤖 Canvas AI Assistant v3.5.4 - ENHANCED UI WITH DEBUGGING & QUALITY TOOLS LOADED');
 
 const API_BASE_URL = 'https://cucov2-production.up.railway.app';
 
 class CanvasAIAssistant {
     constructor() {
+        this.debugMode = localStorage.getItem('cucoDebugMode') === 'true';
         this.init();
     }
 
@@ -302,6 +303,9 @@ class CanvasAIAssistant {
             return;
         }
         
+        console.log(`🤖 Asking question: "${question}"`);
+        console.log(`🌐 API URL: ${API_BASE_URL}/query`);
+        
         resultDiv.innerHTML = '<div style="color: #ff4757;">🤖 Cuco is thinking...</div>';
         
         try {
@@ -313,9 +317,18 @@ class CanvasAIAssistant {
                 })
             });
             
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            console.log(`🌐 Response status: ${response.status}`);
+            console.log(`🌐 Response headers:`, [...response.headers.entries()]);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`❌ HTTP ${response.status}: ${errorText}`);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
             
             const result = await response.json();
+            
+            console.log('✅ Question response:', result);
             
             resultDiv.innerHTML = `
                 <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 4px solid #ff4757;">
@@ -333,11 +346,19 @@ class CanvasAIAssistant {
             `;
             
             questionInput.value = '';
-            console.log('✅ Question answered:', result);
+            console.log('✅ Question answered successfully');
             
         } catch (error) {
             console.error('❌ Question failed:', error);
-            resultDiv.innerHTML = `<div style="color: #f44336;">❌ Error: ${error.message}</div>`;
+            resultDiv.innerHTML = `
+                <div style="color: #f44336; padding: 10px; border-radius: 4px; background: #ffebee;">
+                    <div style="font-weight: bold;">❌ Error:</div>
+                    <div style="margin-top: 5px;">${error.message}</div>
+                    <div style="margin-top: 5px; font-size: 12px; opacity: 0.8;">
+                        Check the browser console for more details.
+                    </div>
+                </div>
+            `;
         }
     }
 
