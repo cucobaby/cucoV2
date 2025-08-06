@@ -106,6 +106,15 @@ def format_educational_response(question: str, unique_results: List, sources: Li
     # Use OpenAI for comprehensive response generation with better error handling
     try:
         import openai
+        
+        # Check if API key exists
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("ERROR: No OpenAI API key found in environment variables")
+            raise Exception("No OpenAI API key configured")
+        
+        print(f"DEBUG: OpenAI API key found (first 10 chars): {api_key[:10]}...")
+        
         # Prioritize longer, more explanatory content
         all_content.sort(key=lambda x: (
             len(x), 
@@ -132,23 +141,50 @@ Instructions:
 
 Format your response as a complete educational explanation, not as fragmented study notes."""
 
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        client = openai.OpenAI(api_key=api_key)
         
-        print(f"Calling OpenAI with {len(combined_content)} characters of content...")  # Debug log
+        print(f"DEBUG: Calling OpenAI with {len(combined_content)} characters of content...")
+        print(f"DEBUG: Using model: gpt-4")
         
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1200,  # Increased for more comprehensive responses
-            temperature=0.3
-        )
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=1200,
+                temperature=0.3,
+                timeout=30  # Add explicit timeout
+            )
+        except Exception as gpt4_error:
+            print(f"DEBUG: GPT-4 failed ({gpt4_error}), trying GPT-3.5-turbo...")
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=1200,
+                temperature=0.3,
+                timeout=30
+            )
         
         ai_response = response.choices[0].message.content.strip()
-        print(f"OpenAI response received: {len(ai_response)} characters")  # Debug log
+        print(f"DEBUG: OpenAI response received: {len(ai_response)} characters")
         return ai_response
         
     except Exception as e:
-        print(f"OpenAI error: {e}")  # Enhanced error logging
+        error_msg = str(e)
+        print(f"DETAILED OpenAI error: {error_msg}")
+        print(f"ERROR TYPE: {type(e).__name__}")
+        
+        # More detailed error analysis
+        if "api key" in error_msg.lower():
+            print("ERROR ANALYSIS: API key issue")
+        elif "timeout" in error_msg.lower():
+            print("ERROR ANALYSIS: Request timeout")
+        elif "quota" in error_msg.lower() or "limit" in error_msg.lower():
+            print("ERROR ANALYSIS: API quota/rate limit exceeded")
+        elif "model" in error_msg.lower():
+            print("ERROR ANALYSIS: Model access issue")
+        else:
+            print(f"ERROR ANALYSIS: Unknown error - {error_msg}")
+        
         # Better fallback response with improved content selection
         if len(all_content) > 0:
             # Create a more structured fallback response
@@ -160,11 +196,11 @@ Format your response as a complete educational explanation, not as fragmented st
 
 {combined[:1500]}
 
-Note: This is a direct excerpt from your study materials. For a more comprehensive explanation, please ensure your OpenAI API is configured properly."""
+Note: OpenAI processing failed ({error_msg}). This is a direct excerpt from your study materials."""
             else:
-                return f"Found course material related to '{question}' but unable to process it into a comprehensive explanation. Please check that your study materials contain detailed explanations rather than just vocabulary lists or learning objectives."
+                return f"Found course material related to '{question}' but unable to process it into a comprehensive explanation. OpenAI Error: {error_msg}"
         
-        return "Unable to generate a response. Please check that your course materials contain sufficient explanatory content about this topic."
+        return f"Unable to generate a response due to API error: {error_msg}"
 
 # --- Auto-load Knowledge Base ---
 async def load_persistent_knowledge_base():
