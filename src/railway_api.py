@@ -174,7 +174,7 @@ Create a comprehensive, visually appealing educational response using this EXACT
 - [Related topic 2]
 - [Related topic 3]
 
-Use emojis, clear formatting, and make it engaging for students. Aim for 500-700 words total.
+Use emojis, clear formatting, and make it engaging for students. Aim for 500-700 words total."""
 
         print(f"Attempting OpenAI call for question: {question}")
         
