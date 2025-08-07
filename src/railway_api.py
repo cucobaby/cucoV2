@@ -37,6 +37,7 @@ class QueryResponse(BaseModel):
     answer: str
     sources: List[str]
     timestamp: str
+    sections: Optional[Dict[str, Any]] = None  # Parsed sections for better display
 
 class IngestResponse(BaseModel):
     message: str
@@ -56,6 +57,117 @@ class ContentUploadResponse(BaseModel):
     message: str
     content_id: str
     chunks_created: int
+
+def parse_educational_response(response_text: str) -> Dict[str, Any]:
+    """Parse the educational response into structured sections for better display"""
+    sections = {
+        "title": "",
+        "learning_objective": "",
+        "quick_summary": "",
+        "study_info": "",
+        "definition_overview": "",
+        "key_concepts": [],
+        "key_terms": [],
+        "think_about": [],
+        "related_topics": [],
+        "formatted_text": response_text
+    }
+    
+    try:
+        lines = response_text.split('\n')
+        current_section = None
+        current_content = []
+        
+        for line in lines:
+            line = line.strip()
+            
+            # Parse title
+            if line.startswith('# '):
+                sections["title"] = line[2:].strip()
+                
+            # Parse learning objective
+            elif line.startswith('> **📚 Learning Objective:**'):
+                sections["learning_objective"] = line.replace('> **📚 Learning Objective:**', '').strip()
+                
+            # Parse quick summary section
+            elif line.startswith('## 🎯 Quick Summary'):
+                current_section = "quick_summary"
+                current_content = []
+                
+            # Parse study time info
+            elif line.startswith('**⏱️ Study Time:**'):
+                sections["study_info"] = line.replace('**⏱️ Study Time:**', '').strip()
+                
+            # Parse definition section
+            elif line.startswith('## 🔍 Definition & Overview'):
+                current_section = "definition_overview"
+                current_content = []
+                
+            # Parse key concepts section
+            elif line.startswith('## 🔬 Key Concepts'):
+                current_section = "key_concepts"
+                current_content = []
+                
+            # Parse individual concepts
+            elif line.startswith('### '):
+                if current_section == "key_concepts":
+                    if current_content:
+                        sections["key_concepts"].append({
+                            "title": current_content[0] if current_content else "",
+                            "content": "\n".join(current_content[1:]) if len(current_content) > 1 else ""
+                        })
+                    current_content = [line[4:].strip()]  # Remove ### and emoji
+                else:
+                    current_content.append(line)
+                    
+            # Parse key terms table
+            elif line.startswith('## 💡 Key Terms'):
+                current_section = "key_terms"
+                current_content = []
+                
+            # Parse think about section
+            elif line.startswith('## 🤔 Think About'):
+                current_section = "think_about"
+                current_content = []
+                
+            # Parse related topics section
+            elif line.startswith('## 🔗 Related Topics'):
+                current_section = "related_topics"
+                current_content = []
+                
+            # Handle table rows for key terms
+            elif current_section == "key_terms" and '|' in line and not line.startswith('|---'):
+                parts = [p.strip() for p in line.split('|') if p.strip()]
+                if len(parts) >= 3 and parts[0] not in ['Term', 'Definition']:
+                    sections["key_terms"].append({
+                        "term": parts[0],
+                        "definition": parts[1],
+                        "importance": parts[2] if len(parts) > 2 else ""
+                    })
+                    
+            # Handle bullet points
+            elif line.startswith('- ') and current_section in ["think_about", "related_topics"]:
+                sections[current_section].append(line[2:].strip())
+                
+            # Add to current content
+            elif line and current_section and not line.startswith('#') and not line.startswith('**⏱️'):
+                current_content.append(line)
+        
+        # Add last section content
+        if current_section and current_content:
+            if current_section == "key_concepts":
+                sections["key_concepts"].append({
+                    "title": current_content[0] if current_content else "",
+                    "content": "\n".join(current_content[1:]) if len(current_content) > 1 else ""
+                })
+            elif current_section in ["quick_summary", "definition_overview"]:
+                sections[current_section] = "\n".join(current_content)
+                
+    except Exception as e:
+        print(f"Error parsing response: {e}")
+        # Return basic structure if parsing fails
+        
+    return sections
 
 # --- Enhanced Response Generation (Core Assistant Integration) ---
 def format_educational_response(question: str, unique_results: List, sources: List) -> str:
@@ -666,15 +778,46 @@ async def query_content(request: QueryRequest):
         # Generate response
         answer = format_educational_response(request.question, unique_results, sources)
         
+        # Parse response into sections for better display
+        parsed_sections = parse_educational_response(answer)
+        
         return QueryResponse(
             answer=answer,
             sources=sources,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
+            sections=parsed_sections
         )
         
     except Exception as e:
         print(f"Query error: {e}")
         raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+# --- Parsed Query Response (for better frontend display) ---
+@app.post("/query-parsed")
+async def query_content_parsed(request: QueryRequest):
+    """Query and return parsed sections for better display"""
+    try:
+        # Get the regular response
+        regular_response = await query_content(request)
+        
+        # Return just the parsed sections
+        return {
+            "title": regular_response.sections.get("title", ""),
+            "learning_objective": regular_response.sections.get("learning_objective", ""),
+            "quick_summary": regular_response.sections.get("quick_summary", ""),
+            "study_info": regular_response.sections.get("study_info", ""),
+            "definition_overview": regular_response.sections.get("definition_overview", ""),
+            "key_concepts": regular_response.sections.get("key_concepts", []),
+            "key_terms": regular_response.sections.get("key_terms", []),
+            "think_about": regular_response.sections.get("think_about", []),
+            "related_topics": regular_response.sections.get("related_topics", []),
+            "sources": regular_response.sources,
+            "timestamp": regular_response.timestamp
+        }
+        
+    except Exception as e:
+        print(f"Parsed query error: {e}")
+        raise HTTPException(status_code=500, detail=f"Parsed query failed: {str(e)}")
 
 # --- Clear Database ---
 @app.post("/clear-documents")
