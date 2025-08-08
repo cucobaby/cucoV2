@@ -504,6 +504,41 @@ async def root():
     """Simple root endpoint"""
     return {"status": "Canvas AI Assistant API", "version": "4.1.0"}
 
+@app.post("/test-quiz-detection")
+async def test_quiz_detection(request: QueryRequest):
+    """Test quiz detection without full CoreAssistant initialization"""
+    try:
+        # Import the enhanced core assistant with quiz capabilities
+        import sys
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
+        
+        from core_assistant import CoreAssistant
+        
+        # Test just the quiz detection logic without initializing ChromaDB
+        temp_assistant = CoreAssistant.__new__(CoreAssistant)  # Create without __init__
+        
+        # Use the internal quiz detection method
+        quiz_result = temp_assistant._detect_quiz_intent(request.question)
+        
+        return {
+            "status": "success",
+            "question": request.question,
+            "quiz_detected": quiz_result.get('is_quiz_request', False),
+            "confidence": quiz_result.get('confidence', 'unknown'),
+            "parameters": str(quiz_result.get('parameters', {})),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "timestamp": datetime.now().isoformat()
+        }
+
 @app.get("/health")
 def health_check():
     """Enhanced health check with CoreAssistant import testing"""
