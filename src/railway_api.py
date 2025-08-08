@@ -44,6 +44,15 @@ class IngestResponse(BaseModel):
     files_processed: List[str]
     status: str
 
+class QuizAnswerRequest(BaseModel):
+    answer: str = Field(..., description="User's answer to the quiz question")
+    session_id: Optional[str] = Field(default=None, description="Quiz session ID")
+    question_index: int = Field(default=0, description="Current question index")
+
+class QuizConfigRequest(BaseModel):
+    config_input: str = Field(..., description="User's quiz configuration preferences")
+    available_topics: List[str] = Field(default=[], description="Available topics from previous request")
+
 class ContentUploadRequest(BaseModel):
     title: str = Field(..., description="Title of the content")
     content: str = Field(..., description="The content text to upload") 
@@ -690,7 +699,60 @@ async def upload_content(request: ContentUploadRequest):
 # --- Query Processing ---
 @app.post("/query", response_model=QueryResponse)
 async def query_content(request: QueryRequest):
-    """Query the educational content with enhanced search"""
+    """Query the educational content with enhanced search and quiz functionality"""
+    try:
+        # Import the enhanced core assistant with quiz capabilities
+        from core_assistant import CoreAssistant
+        
+        # Initialize the core assistant (this will auto-detect subject and load quiz functionality)
+        assistant = CoreAssistant(collection_name="canvas_content")
+        
+        # Process the query (will automatically detect if it's a quiz request or normal question)
+        result = assistant.ask_question(request.question)
+        
+        # Format response based on type
+        if result.get('type') in ['quiz_config', 'quiz_start', 'topic_selection']:
+            # Quiz-related response
+            return QueryResponse(
+                answer=result['answer'],
+                sources=result.get('sources', []),
+                timestamp=datetime.now().isoformat(),
+                sections={
+                    "quiz_mode": True,
+                    "quiz_type": result.get('type'),
+                    "quiz_data": {
+                        "session_id": result.get('quiz_session_id'),
+                        "current_question": result.get('current_question'),
+                        "total_questions": result.get('total_questions'),
+                        "available_topics": result.get('available_topics', []),
+                        "awaiting_config": result.get('awaiting_config', False)
+                    }
+                }
+            )
+        else:
+            # Normal Q&A response
+            sources_list = []
+            if result.get('sources'):
+                for source in result['sources']:
+                    if isinstance(source, dict):
+                        sources_list.append(source.get('source', str(source)))
+                    else:
+                        sources_list.append(str(source))
+            
+            return QueryResponse(
+                answer=result.get('answer', 'No answer provided'),
+                sources=sources_list,
+                timestamp=datetime.now().isoformat(),
+                sections=parse_educational_response(result.get('answer', ''))
+            )
+            
+    except Exception as e:
+        print(f"❌ Query processing error: {e}")
+        # Fallback to original logic if core assistant fails
+        return await query_content_fallback(request)
+
+async def query_content_fallback(request: QueryRequest):
+    """Fallback query processing using original logic"""
     try:
         import chromadb
         chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
@@ -829,6 +891,80 @@ async def query_content_parsed(request: QueryRequest):
     except Exception as e:
         print(f"Parsed query error: {e}")
         raise HTTPException(status_code=500, detail=f"Parsed query failed: {str(e)}")
+
+# --- Quiz-Specific Endpoints ---
+@app.post("/quiz-config")
+async def configure_quiz(request: QuizConfigRequest):
+    """Configure a quiz based on user preferences"""
+    try:
+        from core_assistant import CoreAssistant
+        
+        assistant = CoreAssistant(collection_name="canvas_content")
+        result = assistant.handle_quiz_configuration(request.config_input, request.available_topics)
+        
+        return {
+            "status": "success",
+            "type": result.get('type'),
+            "answer": result.get('answer'),
+            "quiz_data": {
+                "session_id": result.get('quiz_session_id'),
+                "current_question": result.get('current_question'),
+                "total_questions": result.get('total_questions')
+            } if result.get('type') == 'quiz_start' else None,
+            "sources": result.get('sources', []),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"❌ Quiz configuration error: {e}")
+        raise HTTPException(status_code=500, detail=f"Quiz configuration failed: {str(e)}")
+
+@app.post("/quiz-answer")
+async def submit_quiz_answer(request: QuizAnswerRequest):
+    """Submit an answer to a quiz question"""
+    try:
+        from core_assistant import CoreAssistant
+        
+        assistant = CoreAssistant(collection_name="canvas_content")
+        result = assistant.continue_quiz(request.answer, request.session_id, request.question_index)
+        
+        return {
+            "status": "success",
+            "type": result.get('type'),
+            "answer": result.get('answer'),
+            "quiz_data": {
+                "current_question": result.get('current_question'),
+                "score": result.get('score'),
+                "final_score": result.get('final_score'),
+                "total_questions": result.get('total_questions'),
+                "percentage": result.get('percentage')
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"❌ Quiz answer processing error: {e}")
+        raise HTTPException(status_code=500, detail=f"Quiz answer processing failed: {str(e)}")
+
+@app.get("/quiz-analytics")
+async def get_quiz_analytics():
+    """Get user's quiz performance analytics"""
+    try:
+        from core_assistant import CoreAssistant
+        
+        assistant = CoreAssistant(collection_name="canvas_content")
+        result = assistant.get_quiz_analytics()
+        
+        return {
+            "status": "success",
+            "analytics": result.get('analytics_data', {}),
+            "formatted_response": result.get('answer'),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"❌ Quiz analytics error: {e}")
+        raise HTTPException(status_code=500, detail=f"Quiz analytics failed: {str(e)}")
 
 # --- Clear Database ---
 @app.post("/clear-documents")
@@ -1075,6 +1211,181 @@ async def debug_openai_test():
         debug_info["error_type"] = type(e).__name__
         
     return debug_info
+
+@app.post("/api/ingest-content")  
+async def api_ingest_content(request: ContentUploadRequest):
+    """API endpoint for web app content upload (same as upload-content but with /api prefix)"""
+    return await upload_content(request)
+
+# --- Additional API Endpoints for Web App ---
+
+@app.get("/api/stats")
+async def get_stats():
+    """Get dashboard statistics for the web app"""
+    try:
+        import chromadb
+        chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
+        client = chromadb.PersistentClient(path=chroma_path)
+        
+        # Get collection stats
+        try:
+            collection = client.get_collection(name="educational_content")
+            total_content = collection.count()
+        except:
+            total_content = 0
+        
+        # Mock stats for now - you can enhance these later
+        stats = {
+            "total_content": total_content,
+            "questions_asked": 42,  # You can track this in a database later
+            "study_streak": 5,
+            "last_active": "2 hours ago"
+        }
+        
+        return stats
+    except Exception as e:
+        print(f"❌ Error getting stats: {e}")
+        return {"total_content": 0, "questions_asked": 0, "study_streak": 0, "last_active": "Unknown"}
+
+@app.post("/api/content/search")
+async def search_content(request: dict):
+    """Advanced search with filters for the web app"""
+    try:
+        import chromadb
+        chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
+        client = chromadb.PersistentClient(path=chroma_path)
+        
+        query = request.get("query", "")
+        filters = request.get("filters", {})
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="Query is required")
+        
+        try:
+            collection = client.get_collection(name="educational_content")
+        except:
+            return {
+                "results": [],
+                "total": 0,
+                "query": query,
+                "filters": filters,
+                "message": "No content collection found"
+            }
+        
+        # Build ChromaDB query with filters
+        where_filter = {}
+        if filters.get("content_type") and filters["content_type"] != "all":
+            where_filter["content_type"] = filters["content_type"]
+        
+        # Perform search
+        results = collection.query(
+            query_texts=[query],
+            n_results=min(20, request.get("limit", 10)),
+            where=where_filter if where_filter else None
+        )
+        
+        # Format results for web app
+        search_results = []
+        if results['documents'] and results['documents'][0]:
+            for i, doc in enumerate(results['documents'][0]):
+                metadata = results['metadatas'][0][i] if results['metadatas'] and results['metadatas'][0] else {}
+                distance = results['distances'][0][i] if results['distances'] and results['distances'][0] else 0
+                
+                # Calculate relevance percentage
+                relevance = max(0, min(100, int((1 - distance) * 100)))
+                
+                search_results.append({
+                    "id": i + 1,
+                    "title": metadata.get("title", "Untitled Content"),
+                    "excerpt": doc[:200] + "..." if len(doc) > 200 else doc,
+                    "type": metadata.get("content_type", "unknown"),
+                    "date": metadata.get("timestamp", datetime.now().isoformat()),
+                    "relevance": relevance
+                })
+        
+        return {
+            "results": search_results,
+            "total": len(search_results),
+            "query": query,
+            "filters": filters
+        }
+        
+    except Exception as e:
+        print(f"❌ Search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+@app.get("/api/content/list")
+async def get_content_list():
+    """Get list of all content for content manager"""
+    try:
+        import chromadb
+        chroma_path = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db_railway")
+        client = chromadb.PersistentClient(path=chroma_path)
+        
+        try:
+            collection = client.get_collection(name="educational_content")
+        except:
+            return {"content": [], "total": 0, "message": "No content collection found"}
+        
+        # Get all content (you might want to paginate this later)
+        results = collection.get()
+        
+        content_list = []
+        if results['documents']:
+            for i, doc in enumerate(results['documents']):
+                metadata = results['metadatas'][i] if results['metadatas'] else {}
+                
+                content_list.append({
+                    "id": results['ids'][i] if results['ids'] else str(i),
+                    "title": metadata.get("title", "Untitled Content"),
+                    "type": metadata.get("content_type", "unknown"),
+                    "date": metadata.get("timestamp", datetime.now().isoformat()),
+                    "size": len(doc),
+                    "excerpt": doc[:100] + "..." if len(doc) > 100 else doc
+                })
+        
+        return {
+            "content": content_list,
+            "total": len(content_list)
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting content list: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get content list: {str(e)}")
+
+@app.get("/api/analytics")
+async def get_analytics():
+    """Get analytics data for the web app"""
+    try:
+        # Mock analytics data for now - you can enhance this later
+        analytics = {
+            "study_sessions": [
+                {"date": "2024-08-01", "questions": 5, "time_spent": 30},
+                {"date": "2024-08-02", "questions": 8, "time_spent": 45},
+                {"date": "2024-08-03", "questions": 12, "time_spent": 60},
+                {"date": "2024-08-04", "questions": 6, "time_spent": 35},
+                {"date": "2024-08-05", "questions": 10, "time_spent": 50},
+                {"date": "2024-08-06", "questions": 15, "time_spent": 75},
+                {"date": "2024-08-07", "questions": 9, "time_spent": 40},
+            ],
+            "top_topics": [
+                {"name": "Protein Structure", "questions": 25},
+                {"name": "DNA Replication", "questions": 18},
+                {"name": "Cell Biology", "questions": 15},
+                {"name": "Photosynthesis", "questions": 12},
+            ],
+            "difficulty_distribution": {
+                "beginner": 40,
+                "intermediate": 35,
+                "advanced": 25
+            }
+        }
+        
+        return analytics
+        
+    except Exception as e:
+        print(f"❌ Error getting analytics: {e}")
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
