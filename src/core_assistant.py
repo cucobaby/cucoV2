@@ -402,7 +402,7 @@ Please provide a clear, educational answer based on this course content."""
         return params
     
     def _handle_quiz_request(self, question: str, quiz_intent: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle quiz generation request"""
+        """Handle quiz generation request by showing configuration options"""
         if not self.quiz_generator:
             return {
                 'answer': "❌ Quiz generation is not available. Please ensure OpenAI API is configured.",
@@ -410,58 +410,136 @@ Please provide a clear, educational answer based on this course content."""
                 'sources': []
             }
         
-        params = quiz_intent['parameters']
+        # Get available topics from knowledge base
+        available_topics = self.get_available_quiz_topics()
+        if not available_topics:
+            return {
+                'answer': "❌ I don't have enough content to generate quizzes. Please add some study materials to your knowledge base first.",
+                'type': 'error',
+                'sources': []
+            }
         
-        # If no topic specified, try to extract from context or suggest topics
-        if not params['topic']:
-            available_topics = self.get_available_quiz_topics()
-            if available_topics:
-                topic_list = ', '.join(available_topics[:5])
-                return {
-                    'answer': f"🎯 I can create quizzes on these topics: {topic_list}\n\nPlease specify which topic you'd like to be quizzed on. For example:\n• 'Quiz me on photosynthesis'\n• 'Create 5 multiple choice questions about cell division'\n• 'Test my knowledge of genetics'",
-                    'type': 'topic_selection',
-                    'available_topics': available_topics,
-                    'sources': []
-                }
-            else:
-                return {
-                    'answer': "❌ I don't have enough content to generate quizzes. Please add some study materials to your knowledge base first.",
-                    'type': 'error',
-                    'sources': []
-                }
+        # Present quiz configuration options
+        config_options = self._format_quiz_configuration_options(available_topics)
+        
+        return {
+            'answer': config_options,
+            'type': 'quiz_config',
+            'available_topics': available_topics,
+            'awaiting_config': True,
+            'sources': []
+        }
+    
+    def _format_quiz_configuration_options(self, available_topics: List[str]) -> str:
+        """Format the quiz configuration options for the user"""
+        config_text = [
+            "🎯 **Quiz Generator - Configure Your Quiz**",
+            "",
+            "Let's set up your personalized quiz! Please provide your preferences:",
+            "",
+            "📚 **1. Topic Selection:**",
+            "Choose from available topics in your knowledge base:"
+        ]
+        
+        # Add available topics with numbers
+        for i, topic in enumerate(available_topics[:10], 1):  # Limit to 10 topics
+            config_text.append(f"   {i}. {topic}")
+        
+        if len(available_topics) > 10:
+            config_text.append(f"   ... and {len(available_topics) - 10} more topics")
+        
+        config_text.extend([
+            "",
+            "🎲 **2. Quiz Type:**",
+            "   A. Multiple Choice only",
+            "   B. Fill in the Blank only", 
+            "   C. Mixed (both types)",
+            "",
+            "📊 **3. Number of Questions:**",
+            "   • 5 questions (Quick review)",
+            "   • 10 questions (Standard)",
+            "   • 15 questions (Comprehensive)",
+            "   • Custom number (1-20)",
+            "",
+            "⚡ **4. Difficulty Level:**",
+            "   • Easy (Basic concepts)",
+            "   • Medium (Standard level)",
+            "   • Hard (Advanced/challenging)",
+            "",
+            "🎴 **5. Quiz Format:**",
+            "   • Standard (Traditional quiz format)",
+            "   • Flashcards (Flip-card style)",
+            "",
+            "💡 **How to Configure:**",
+            "Simply tell me your preferences in natural language! For example:",
+            "",
+            "**Examples:**",
+            '• "Topic 1, multiple choice, 10 questions, medium difficulty, standard format"',
+            '• "Photosynthesis, mixed quiz, 5 questions, easy level, flashcards"',
+            '• "DNA replication, fill in blank, 15 questions, hard, standard"',
+            "",
+            "Or just specify what you want:",
+            '• "Photosynthesis quiz with 10 questions"',
+            '• "Easy multiple choice about cell division"',
+            '• "Hard flashcards on genetics"',
+            "",
+            "🚀 **Ready? Tell me how you'd like your quiz configured!**"
+        ])
+        
+        return "\n".join(config_text)
+    
+    def handle_quiz_configuration(self, config_input: str, available_topics: List[str]) -> Dict[str, Any]:
+        """Process user's quiz configuration input and create the quiz"""
+        if not self.quiz_generator:
+            return {
+                'answer': "❌ Quiz generation is not available.",
+                'type': 'error',
+                'sources': []
+            }
+        
+        # Parse configuration from user input
+        config = self._parse_quiz_configuration(config_input, available_topics)
+        
+        if not config['topic']:
+            return {
+                'answer': f"❌ Please specify a topic from the available options: {', '.join(available_topics[:5])}...",
+                'type': 'config_error',
+                'sources': []
+            }
         
         # Generate quiz content from knowledge base
-        topic_content = self._get_topic_content(params['topic'])
+        topic_content = self._get_topic_content(config['topic'])
         
         if not topic_content:
             return {
-                'answer': f"❌ I couldn't find enough content about '{params['topic']}' to create a quiz. Try a different topic or add more study materials.",
+                'answer': f"❌ I couldn't find enough content about '{config['topic']}' to create a quiz. Please choose a different topic.",
                 'type': 'error',
                 'sources': []
             }
         
         try:
-            # Create quiz session
+            # Create quiz session with user's configuration
             quiz_session = self.quiz_generator.create_quiz(
                 content_source=topic_content,
-                quiz_length=params['length'],
-                quiz_type=params['quiz_type'],
-                quiz_format=params['quiz_format'],
-                difficulty=params['difficulty'],
+                quiz_length=config['length'],
+                quiz_type=config['quiz_type'],
+                quiz_format=config['quiz_format'],
+                difficulty=config['difficulty'],
                 use_knowledge_base=True
             )
             
-            # Present first question
+            # Present configuration summary and first question
+            config_summary = self._format_quiz_config_summary(config)
             first_question = self.quiz_generator.present_question(0)
             
             response = {
-                'answer': self._format_quiz_response(first_question, quiz_session),
+                'answer': f"{config_summary}\n\n{self._format_quiz_response(first_question, quiz_session)}",
                 'type': 'quiz_start',
                 'quiz_session_id': quiz_session.session_id,
                 'current_question': 0,
                 'total_questions': quiz_session.total_questions,
                 'quiz_format': quiz_session.quiz_format.value,
-                'sources': [{'source': f"Quiz on {params['topic']}", 'chapter': 'Generated', 'lectures': 'AI Generated'}]
+                'sources': [{'source': f"Quiz on {config['topic']}", 'chapter': 'Generated', 'lectures': 'AI Generated'}]
             }
             
             return response
@@ -472,6 +550,95 @@ Please provide a clear, educational answer based on this course content."""
                 'type': 'error',
                 'sources': []
             }
+    
+    def _parse_quiz_configuration(self, config_input: str, available_topics: List[str]) -> Dict[str, Any]:
+        """Parse user's configuration input into quiz parameters"""
+        from quiz_generator import QuizType, QuizFormat
+        
+        config_lower = config_input.lower()
+        
+        # Default configuration
+        config = {
+            'topic': None,
+            'quiz_type': QuizType.MIXED,
+            'quiz_format': QuizFormat.STANDARD,
+            'length': 5,
+            'difficulty': 'medium'
+        }
+        
+        # Find topic - check if any available topic is mentioned
+        for topic in available_topics:
+            if topic.lower() in config_lower or any(word in config_lower for word in topic.lower().split()):
+                config['topic'] = topic
+                break
+        
+        # If no topic found, try to match by number (Topic 1, Topic 2, etc.)
+        if not config['topic']:
+            import re
+            topic_number_match = re.search(r'topic (\d+)', config_lower)
+            if topic_number_match:
+                topic_index = int(topic_number_match.group(1)) - 1
+                if 0 <= topic_index < len(available_topics):
+                    config['topic'] = available_topics[topic_index]
+        
+        # Parse quiz type
+        if 'multiple choice' in config_lower or 'mc' in config_lower or 'option a' in config_lower:
+            config['quiz_type'] = QuizType.MULTIPLE_CHOICE
+        elif 'fill in' in config_lower or 'blank' in config_lower or 'option b' in config_lower:
+            config['quiz_type'] = QuizType.FILL_IN_BLANK
+        elif 'mixed' in config_lower or 'both' in config_lower or 'option c' in config_lower:
+            config['quiz_type'] = QuizType.MIXED
+        
+        # Parse number of questions
+        number_patterns = [
+            r'(\d+)\s*questions?',
+            r'(\d+)\s*q\b',
+            r'\b(\d+)\b(?=.*questions?)',
+        ]
+        
+        for pattern in number_patterns:
+            match = re.search(pattern, config_lower)
+            if match:
+                num = int(match.group(1))
+                if 1 <= num <= 20:  # Reasonable limits
+                    config['length'] = num
+                break
+        
+        # Quick presets
+        if 'quick' in config_lower:
+            config['length'] = 5
+        elif 'standard' in config_lower and 'format' not in config_lower:
+            config['length'] = 10
+        elif 'comprehensive' in config_lower:
+            config['length'] = 15
+        
+        # Parse difficulty
+        if 'easy' in config_lower or 'basic' in config_lower or 'simple' in config_lower:
+            config['difficulty'] = 'easy'
+        elif 'hard' in config_lower or 'difficult' in config_lower or 'advanced' in config_lower or 'challenging' in config_lower:
+            config['difficulty'] = 'hard'
+        elif 'medium' in config_lower or 'standard' in config_lower:
+            config['difficulty'] = 'medium'
+        
+        # Parse format
+        if 'flashcard' in config_lower or 'flip' in config_lower:
+            config['quiz_format'] = QuizFormat.FLASHCARD
+        elif 'standard' in config_lower and 'format' in config_lower:
+            config['quiz_format'] = QuizFormat.STANDARD
+        
+        return config
+    
+    def _format_quiz_config_summary(self, config: Dict[str, Any]) -> str:
+        """Format a summary of the quiz configuration"""
+        return f"""✅ **Quiz Configuration Confirmed:**
+📚 Topic: {config['topic']}
+🎲 Type: {config['quiz_type'].value.replace('_', ' ').title()}
+📊 Questions: {config['length']}
+⚡ Difficulty: {config['difficulty'].title()}
+🎴 Format: {config['quiz_format'].value.title()}
+
+🚀 **Starting your quiz now...**
+───────────────────────────────"""
     
     def _get_topic_content(self, topic: str) -> str:
         """Get relevant content for the topic from knowledge base"""
@@ -877,19 +1044,22 @@ def main():
     print(f"🧭 Active Subject: {assistant.subject_info['display_name']}")
     print("\n💡 **What you can do:**")
     print("• Ask any question about your course content")
-    print("• Generate quizzes: 'Create a quiz on [topic]'")
-    print("• Specify quiz details: 'Give me 5 multiple choice questions about photosynthesis'")
+    print("• Generate quizzes: 'Create a quiz' or 'Quiz me'")
     print("• Check your progress: 'Show my quiz analytics'")
     print("• Type 'quit' to exit")
     print("=" * 60)
     
-    # Track active quiz session
+    # Track active quiz session and configuration state
     active_quiz = None
     current_question = 0
+    awaiting_quiz_config = False
+    available_topics = []
     
     while True:
         if active_quiz:
             user_input = input(f"🎯 Quiz Answer (Q{current_question + 1}): ").strip()
+        elif awaiting_quiz_config:
+            user_input = input("🎛️ Quiz Configuration: ").strip()
         else:
             user_input = input("❓ Ask me anything or request a quiz: ").strip()
         
@@ -906,8 +1076,29 @@ def main():
         
         print("\n" + "="*80)
         
-        # Handle quiz continuation or new requests
-        if active_quiz:
+        # Handle different states
+        if awaiting_quiz_config:
+            # Process quiz configuration
+            result = assistant.handle_quiz_configuration(user_input, available_topics)
+            
+            if result['type'] == 'quiz_start':
+                # Quiz started successfully
+                active_quiz = result['quiz_session_id']
+                current_question = result['current_question']
+                awaiting_quiz_config = False
+                print("🎯 Quiz Started:")
+                print("-" * 30)
+                print(result['answer'])
+            elif result['type'] == 'config_error':
+                print("⚠️ Configuration Issue:")
+                print(result['answer'])
+                # Stay in config mode
+            else:
+                print("❌ Configuration Error:")
+                print(result['answer'])
+                awaiting_quiz_config = False
+                
+        elif active_quiz:
             # Continue quiz
             result = assistant.continue_quiz(user_input, active_quiz, current_question)
             
@@ -935,16 +1126,19 @@ def main():
             else:
                 result = assistant.ask_question(user_input)
             
-            if result['type'] == 'quiz_start':
-                # New quiz started
-                active_quiz = result['quiz_session_id']
-                current_question = result['current_question']
-                print("🎯 New Quiz Started:")
+            if result['type'] == 'quiz_config':
+                # Show quiz configuration options
+                awaiting_quiz_config = True
+                available_topics = result['available_topics']
+                print("�️ Quiz Configuration:")
                 print("-" * 30)
                 print(result['answer'])
                 
-            elif result['type'] == 'topic_selection':
-                print("🎯 Quiz Topic Selection:")
+            elif result['type'] == 'quiz_start':
+                # Direct quiz start (shouldn't happen with new flow, but keeping for safety)
+                active_quiz = result['quiz_session_id']
+                current_question = result['current_question']
+                print("🎯 Quiz Started:")
                 print("-" * 30)
                 print(result['answer'])
                 
