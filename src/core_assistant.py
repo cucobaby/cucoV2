@@ -324,11 +324,14 @@ Please provide a clear, educational answer based on this course content."""
         quiz_patterns = [
             r'(create|generate|make|give me|start) (a |an )?(quiz|test)',
             r'quiz me (on|about)',
+            r'quiz.*me.*on',  # More flexible pattern for "quiz me on X"
             r'(test|assess) my (knowledge|understanding)',
             r'practice (questions|problems)',
             r'(multiple choice|fill.in.blank|flashcard) (questions|quiz)',
             r'(\d+) questions? (about|on)',
-            r'study (with|using) (questions|quiz|flashcards)'
+            r'study (with|using) (questions|quiz|flashcards)',
+            r'^quiz\s+.*',  # Any sentence starting with "quiz"
+            r'quiz.*about',  # Quiz about something
         ]
         
         # Check for quiz keywords
@@ -337,11 +340,23 @@ Please provide a clear, educational answer based on this course content."""
         # Check for quiz patterns
         has_quiz_pattern = any(re.search(pattern, question_lower) for pattern in quiz_patterns)
         
+        # Debug logging
+        print(f"🔍 Quiz detection for: '{question}'")
+        print(f"   Keywords found: {has_quiz_keywords}")
+        print(f"   Patterns matched: {has_quiz_pattern}")
+        if has_quiz_pattern:
+            for pattern in quiz_patterns:
+                if re.search(pattern, question_lower):
+                    print(f"   ✅ Matched pattern: {pattern}")
+        
         # Extract quiz parameters
         quiz_params = self._extract_quiz_parameters(question)
         
+        is_quiz_request = has_quiz_keywords or has_quiz_pattern
+        print(f"   🎯 Final decision: {'QUIZ' if is_quiz_request else 'NORMAL Q&A'}")
+        
         return {
-            'is_quiz_request': has_quiz_keywords or has_quiz_pattern,
+            'is_quiz_request': is_quiz_request,
             'confidence': 'high' if has_quiz_pattern else 'medium' if has_quiz_keywords else 'low',
             'parameters': quiz_params
         }

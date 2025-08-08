@@ -702,13 +702,31 @@ async def query_content(request: QueryRequest):
     """Query the educational content with enhanced search and quiz functionality"""
     try:
         # Import the enhanced core assistant with quiz capabilities
-        from core_assistant import CoreAssistant
+        try:
+            from core_assistant import CoreAssistant
+            print("✅ Successfully imported CoreAssistant")
+        except ImportError as e:
+            print(f"❌ Failed to import CoreAssistant: {e}")
+            # Fallback to original logic
+            return await query_content_fallback(request)
         
         # Initialize the core assistant (this will auto-detect subject and load quiz functionality)
-        assistant = CoreAssistant(collection_name="canvas_content")
+        try:
+            assistant = CoreAssistant(collection_name="canvas_content")
+            print("✅ Successfully initialized CoreAssistant")
+        except Exception as e:
+            print(f"❌ Failed to initialize CoreAssistant: {e}")
+            # Fallback to original logic
+            return await query_content_fallback(request)
         
         # Process the query (will automatically detect if it's a quiz request or normal question)
-        result = assistant.ask_question(request.question)
+        try:
+            result = assistant.ask_question(request.question)
+            print(f"✅ Successfully processed question: {result.get('type', 'unknown')}")
+        except Exception as e:
+            print(f"❌ Failed to process question with CoreAssistant: {e}")
+            # Fallback to original logic
+            return await query_content_fallback(request)
         
         # Format response based on type
         if result.get('type') in ['quiz_config', 'quiz_start', 'topic_selection']:
@@ -748,6 +766,8 @@ async def query_content(request: QueryRequest):
             
     except Exception as e:
         print(f"❌ Query processing error: {e}")
+        import traceback
+        print(f"❌ Full traceback: {traceback.format_exc()}")
         # Fallback to original logic if core assistant fails
         return await query_content_fallback(request)
 
