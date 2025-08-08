@@ -766,19 +766,28 @@ async def query_content(request: QueryRequest):
         
         # Initialize the core assistant (this will auto-detect subject and load quiz functionality)
         try:
+            print("🔄 Initializing CoreAssistant...")
             assistant = CoreAssistant(collection_name="canvas_content")
             print("✅ Successfully initialized CoreAssistant")
         except Exception as e:
             print(f"❌ Failed to initialize CoreAssistant: {e}")
+            print(f"Error type: {type(e).__name__}")
+            # More detailed error for ChromaDB issues
+            if "chroma" in str(e).lower():
+                print("This appears to be a ChromaDB-related error")
+            if "openai" in str(e).lower():
+                print("This appears to be an OpenAI-related error")
             # Fallback to original logic
             return await query_content_fallback(request)
         
         # Process the query (will automatically detect if it's a quiz request or normal question)
         try:
+            print(f"🔄 Processing question: {request.question[:50]}...")
             result = assistant.ask_question(request.question)
             print(f"✅ Successfully processed question: {result.get('type', 'unknown')}")
         except Exception as e:
             print(f"❌ Failed to process question with CoreAssistant: {e}")
+            print(f"Error type: {type(e).__name__}")
             # Fallback to original logic
             return await query_content_fallback(request)
         
