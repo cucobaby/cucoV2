@@ -703,10 +703,37 @@ async def query_content(request: QueryRequest):
     try:
         # Import the enhanced core assistant with quiz capabilities
         try:
+            # Add current directory to path for Railway deployment
+            import sys
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            
             from core_assistant import CoreAssistant
             print("✅ Successfully imported CoreAssistant")
         except ImportError as e:
             print(f"❌ Failed to import CoreAssistant: {e}")
+            print(f"Current directory: {os.getcwd()}")
+            print(f"Script directory: {os.path.dirname(os.path.abspath(__file__))}")
+            
+            # List files in current directory for debugging
+            try:
+                files = os.listdir('.')
+                print(f"Files in current dir: {[f for f in files if f.endswith('.py')]}")
+            except Exception as list_error:
+                print(f"Could not list current directory: {list_error}")
+                
+            # Try to find core_assistant.py specifically
+            try:
+                import sys
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                core_assistant_path = os.path.join(current_dir, 'core_assistant.py')
+                print(f"Looking for core_assistant.py at: {core_assistant_path}")
+                print(f"Exists: {os.path.exists(core_assistant_path)}")
+            except Exception as find_error:
+                print(f"Error finding core_assistant.py: {find_error}")
+                
+            print(f"Python path: {sys.path[:3]}")  # Show first 3 paths
             # Fallback to original logic
             return await query_content_fallback(request)
         
@@ -917,6 +944,12 @@ async def query_content_parsed(request: QueryRequest):
 async def configure_quiz(request: QuizConfigRequest):
     """Configure a quiz based on user preferences"""
     try:
+        # Add current directory to path for Railway deployment
+        import sys
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
+            
         from core_assistant import CoreAssistant
         
         assistant = CoreAssistant(collection_name="canvas_content")
@@ -943,6 +976,12 @@ async def configure_quiz(request: QuizConfigRequest):
 async def submit_quiz_answer(request: QuizAnswerRequest):
     """Submit an answer to a quiz question"""
     try:
+        # Add current directory to path for Railway deployment
+        import sys
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
+            
         from core_assistant import CoreAssistant
         
         assistant = CoreAssistant(collection_name="canvas_content")
@@ -970,6 +1009,12 @@ async def submit_quiz_answer(request: QuizAnswerRequest):
 async def get_quiz_analytics():
     """Get user's quiz performance analytics"""
     try:
+        # Add current directory to path for Railway deployment
+        import sys
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
+            
         from core_assistant import CoreAssistant
         
         assistant = CoreAssistant(collection_name="canvas_content")

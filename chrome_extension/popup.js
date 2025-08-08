@@ -25,15 +25,28 @@ async function initializePopup() {
 }
 
 function setupEventListeners() {
-    // Action buttons
-    document.getElementById('analyze-current').addEventListener('click', analyzeCurrentPage);
-    document.getElementById('open-assistant').addEventListener('click', openAssistant);
-    document.getElementById('health-check').addEventListener('click', checkAPIHealth);
-    
-    // Settings toggles
-    document.getElementById('enable-assistant').addEventListener('change', handleSettingChange);
-    document.getElementById('auto-analyze').addEventListener('change', handleSettingChange);
-    document.getElementById('show-quick-actions').addEventListener('change', handleSettingChange);
+    try {
+        // Action buttons
+        document.getElementById('analyze-current').addEventListener('click', analyzeCurrentPage);
+        document.getElementById('open-assistant').addEventListener('click', openAssistant);
+        document.getElementById('health-check').addEventListener('click', checkAPIHealth);
+        
+        // Your Cuco button
+        const cucoButton = document.getElementById('cuco-button');
+        if (cucoButton) {
+            cucoButton.addEventListener('click', openCucoWebApp);
+            console.log('✅ Your Cuco button event listener added');
+        } else {
+            console.error('❌ Your Cuco button not found');
+        }
+        
+        // Settings toggles
+        document.getElementById('enable-assistant').addEventListener('change', handleSettingChange);
+        document.getElementById('auto-analyze').addEventListener('change', handleSettingChange);
+        document.getElementById('show-quick-actions').addEventListener('change', handleSettingChange);
+    } catch (error) {
+        console.error('Error setting up event listeners:', error);
+    }
     
     // Footer links
     document.getElementById('view-docs').addEventListener('click', () => {
@@ -217,6 +230,33 @@ async function openAssistant() {
     } catch (error) {
         console.error('Failed to open assistant:', error);
         showNotification('Failed to open assistant', 'error');
+    }
+}
+
+function openCucoWebApp() {
+    console.log('🌐 Your Cuco button clicked!');
+    try {
+        // Open the Cuco web application in a new tab
+        chrome.tabs.create({ 
+            url: 'http://localhost:3002',
+            active: true 
+        });
+        
+        console.log('✅ Opening Cuco web app at http://localhost:3002');
+        
+        // Show success notification if function exists
+        if (typeof showNotification === 'function') {
+            showNotification('Opening Your Cuco web app...', 'success');
+        }
+        
+        // Close popup after a short delay
+        setTimeout(() => window.close(), 500);
+        
+    } catch (error) {
+        console.error('❌ Failed to open Cuco web app:', error);
+        if (typeof showNotification === 'function') {
+            showNotification('Failed to open web app', 'error');
+        }
     }
 }
 

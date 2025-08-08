@@ -1,7 +1,50 @@
 // Canvas AI Assistant - Working Version
-console.log('🤖 Canvas AI Assistant v3.5.4 - ENHANCED UI WITH DEBUGGING & QUALITY TOOLS LOADED');
+console.log('🤖 Canvas AI Assistant v3.5.4 - ENHANCED UI WITH YOUR CUCO BUTTON LOADED');
 
 const API_BASE_URL = 'https://cucov2-production.up.railway.app';
+
+// Function to format educational response with proper HTML
+function formatEducationalResponse(text) {
+    if (!text) return 'No content available';
+    
+    // Convert the markdown-style formatting to HTML
+    let formatted = text
+        // Convert headers
+        .replace(/^# (.*$)/gm, '<h2 style="color: #ff4757; font-size: 18px; font-weight: bold; margin: 16px 0 8px 0; border-bottom: 2px solid #ff4757; padding-bottom: 4px;">$1</h2>')
+        .replace(/^## (.*$)/gm, '<h3 style="color: #2c3e50; font-size: 16px; font-weight: 600; margin: 14px 0 6px 0;">$1</h3>')
+        .replace(/^### (.*$)/gm, '<h4 style="color: #34495e; font-size: 14px; font-weight: 600; margin: 10px 0 4px 0;">$1</h4>')
+        
+        // Convert learning objectives (special blockquote style)
+        .replace(/^> \*\*(.*?)\*\*/gm, '<div style="background: #e8f4fd; border-left: 4px solid #3498db; padding: 10px; margin: 10px 0; border-radius: 4px; color: #2c3e50; font-weight: 500;">$1</div>')
+        
+        // Convert bold text
+        .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 600; color: #2c3e50;">$1</strong>')
+        
+        // Convert bullet points
+        .replace(/^- (.*$)/gm, '<li style="margin: 4px 0; padding-left: 4px;">$1</li>')
+        
+        // Wrap consecutive list items in ul tags
+        .replace(/(<li[^>]*>.*<\/li>\s*)+/g, '<ul style="margin: 8px 0; padding-left: 20px;">$&</ul>')
+        
+        // Convert horizontal rules
+        .replace(/^---$/gm, '<hr style="border: none; border-top: 1px solid #e0e0e0; margin: 16px 0;">')
+        
+        // Convert table rows (basic support)
+        .replace(/^\|(.+)\|$/gm, function(match, content) {
+            const cells = content.split('|').map(cell => cell.trim());
+            if (cells[0] === 'Term' || cells[0] === '---') return ''; // Skip header separators
+            return `<tr><td style="padding: 6px; border: 1px solid #ddd; font-weight: 500;">${cells[0] || ''}</td><td style="padding: 6px; border: 1px solid #ddd;">${cells[1] || ''}</td><td style="padding: 6px; border: 1px solid #ddd; font-size: 12px; color: #666;">${cells[2] || ''}</td></tr>`;
+        })
+        
+        // Wrap table rows in table
+        .replace(/(<tr>.*<\/tr>\s*)+/g, '<table style="width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px;"><thead><tr><th style="background: #f8f9fa; padding: 8px; border: 1px solid #ddd; font-weight: 600;">Term</th><th style="background: #f8f9fa; padding: 8px; border: 1px solid #ddd; font-weight: 600;">Definition</th><th style="background: #f8f9fa; padding: 8px; border: 1px solid #ddd; font-weight: 600;">Why Important</th></tr></thead><tbody>$&</tbody></table>')
+        
+        // Convert line breaks to HTML
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+    
+    return formatted;
+}
 
 class CanvasAIAssistant {
     constructor() {
@@ -115,6 +158,17 @@ class CanvasAIAssistant {
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="margin: 0; font-size: 18px;">🤖 Canvas AI Assistant</h3>
                     <div style="display: flex; align-items: center; gap: 10px;">
+                        <button id="your-cuco-btn" style="
+                            background: rgba(255, 255, 255, 0.2);
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            color: white;
+                            padding: 6px 12px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 12px;
+                            font-weight: 500;
+                            transition: all 0.2s ease;
+                        ">🌐 Your Cuco</button>
                         <button id="view-kb-btn" style="
                             background: rgba(255, 255, 255, 0.2);
                             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -215,6 +269,11 @@ class CanvasAIAssistant {
             const style = document.createElement('style');
             style.id = 'ai-panel-scrollbar-styles';
             style.textContent = `
+                #your-cuco-btn:hover {
+                    background: rgba(255, 255, 255, 0.3) !important;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                }
                 #documents-list::-webkit-scrollbar {
                     width: 6px;
                 }
@@ -238,6 +297,7 @@ class CanvasAIAssistant {
         panel.querySelector('#upload-btn').addEventListener('click', () => this.uploadContent());
         panel.querySelector('#ask-btn').addEventListener('click', () => this.askQuestion());
         panel.querySelector('#view-kb-btn').addEventListener('click', () => this.toggleKnowledgeBase());
+        panel.querySelector('#your-cuco-btn').addEventListener('click', () => this.openCucoWebApp());
         
         console.log('✅ Panel created with both sections visible');
     }
@@ -330,10 +390,13 @@ class CanvasAIAssistant {
             
             console.log('✅ Question response:', result);
             
+            // Format the educational response properly
+            const formattedAnswer = formatEducationalResponse(result.answer || result.response || 'No answer provided');
+            
             resultDiv.innerHTML = `
                 <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 4px solid #ff4757;">
                     <div style="color: #ff4757; font-weight: bold; margin-bottom: 8px;">🤖 Cuco's Answer:</div>
-                    <div style="color: #333; line-height: 1.4; margin-bottom: 8px;">${result.answer}</div>
+                    <div style="color: #333; line-height: 1.6; margin-bottom: 8px;">${formattedAnswer}</div>
                     ${result.sources && result.sources.length > 0 ? `
                         <div style="border-top: 1px solid #e9ecef; padding-top: 8px; margin-top: 8px;">
                             <div style="color: #6c757d; font-size: 12px; font-weight: 500; margin-bottom: 4px;">📚 Sources:</div>
@@ -573,6 +636,18 @@ class CanvasAIAssistant {
                     </div>
                 `;
             }
+        }
+    }
+
+    openCucoWebApp() {
+        console.log('🌐 Opening Your Cuco web application...');
+        try {
+            // Open the Cuco web application in a new tab
+            window.open('http://localhost:3002', '_blank');
+            console.log('✅ Opened Cuco web app at http://localhost:3002');
+        } catch (error) {
+            console.error('❌ Failed to open Cuco web app:', error);
+            alert('Failed to open Your Cuco web app. Please make sure it\'s running at http://localhost:3002');
         }
     }
 }

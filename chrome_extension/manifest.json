@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Canvas AI Assistant",
-  "version": "3.5.3",
+  "version": "3.5.4",
   "description": "AI-powered educational assistant for Canvas LMS - Enhanced UI & Educational Responses v3.5.1",
   "permissions": [
     "activeTab",
@@ -13,6 +13,10 @@
     "https://*.canvas.com/*",
     "https://cucov2-production.up.railway.app/*"
   ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Canvas AI Assistant"
+  },
   "content_scripts": [
     {
       "matches": [
