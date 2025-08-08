@@ -506,8 +506,35 @@ async def root():
 
 @app.get("/health")
 def health_check():
-    """Minimal health check for Railway"""
-    return {"status": "ok"}
+    """Enhanced health check with CoreAssistant import testing"""
+    health_info = {
+        "status": "ok",
+        "version": "4.1.0",
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    # Test CoreAssistant import specifically
+    try:
+        import sys
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
+        from core_assistant import CoreAssistant
+        health_info["core_assistant"] = "✅ Available"
+        health_info["quiz_functionality"] = "✅ Available"
+    except ImportError as e:
+        health_info["core_assistant"] = f"❌ Import Error: {e}"
+        health_info["quiz_functionality"] = "❌ Not Available"
+        health_info["environment_debug"] = {
+            "cwd": os.getcwd(),
+            "script_dir": os.path.dirname(os.path.abspath(__file__)),
+            "files_in_dir": [f for f in os.listdir('.') if f.endswith('.py')]
+        }
+    except Exception as e:
+        health_info["core_assistant"] = f"❌ Other Error: {e}"
+        health_info["quiz_functionality"] = "❌ Not Available"
+    
+    return health_info
 
 @app.get("/health/detailed")
 async def detailed_health_check():
