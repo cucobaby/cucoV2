@@ -218,7 +218,7 @@ def format_educational_response(question: str, unique_results: List, sources: Li
             context_text += chunk['content']
             context_text += "\n"
         
-        # Enhanced educational system prompt
+        # Enhanced educational system prompt with better formatting
         system_prompt = """You are an expert educational tutor helping students master complex academic concepts. 
 Create responses that are:
 - Visually structured with clear sections and emojis
@@ -227,14 +227,15 @@ Create responses that are:
 - Define key terms in a glossary format
 - Use step-by-step explanations for processes
 - Add "Think About This" sections for deeper understanding
-- Connect to related topics for comprehensive learning"""
+- Connect to related topics for comprehensive learning
+- Use proper line breaks and spacing for readability"""
 
         user_prompt = f"""Question: {question}
 
 Course Content:
 {context_text}
 
-Create a comprehensive, visually appealing educational response using this EXACT format:
+Create a comprehensive, visually appealing educational response using this EXACT format with proper spacing:
 
 # 🧬 [Main Topic Title]
 
@@ -243,6 +244,7 @@ Create a comprehensive, visually appealing educational response using this EXACT
 ---
 
 ## 🎯 Quick Summary
+
 [2-3 sentence overview of the topic]
 
 **⏱️ Study Time:** [X-Y minutes] | **📊 Difficulty:** [🟢 Basic/🟡 Intermediate/🔴 Advanced]
@@ -250,17 +252,23 @@ Create a comprehensive, visually appealing educational response using this EXACT
 ---
 
 ## 🔍 Definition & Overview
-[Clear definition and context]
+
+[Clear definition and context with proper paragraphs]
+
+---
 
 ## 🔬 Key Concepts You Need to Know
 
 ### 1. 📝 [Concept Name]
+
 - **What it is:** [explanation]
-- **Why it matters:** [relevance]
+- **Why it matters:** [relevance]  
 - **Key terms:** [important vocabulary]
 
 ### 2. ⚙️ [Process/Mechanism Name]
+
 **Step-by-step breakdown:**
+
 1. **[Step 1]** 🚀 - [description]
 2. **[Step 2]** ➡️ - [description]  
 3. **[Step 3]** 🏁 - [description]
@@ -268,6 +276,7 @@ Create a comprehensive, visually appealing educational response using this EXACT
 ---
 
 ## 💡 Key Terms to Remember
+
 | Term | Definition | Why Important |
 |------|------------|---------------|
 | [Term 1] | [Definition] | [Significance] |
@@ -276,17 +285,19 @@ Create a comprehensive, visually appealing educational response using this EXACT
 ---
 
 ## 🤔 Think About This
+
 - [Thought-provoking question 1]
 - [Connection or application question 2]
 
 ---
 
 ## 🔗 Related Topics to Explore Next
+
 - [Related topic 1]
-- [Related topic 2]
+- [Related topic 2]  
 - [Related topic 3]
 
-Use emojis, clear formatting, and make it engaging for students. Aim for 500-700 words total."""
+IMPORTANT: Use double line breaks (\\n\\n) between all major sections and proper spacing for excellent readability. Make it engaging for students with clear visual separation."""
 
         print(f"Attempting OpenAI call for question: {question}")
         
