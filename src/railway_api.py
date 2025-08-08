@@ -813,6 +813,42 @@ async def upload_content(request: ContentUploadRequest):
 async def query_content(request: QueryRequest):
     """Query the educational content with enhanced search and quiz functionality"""
     try:
+        # Quick quiz detection first - if it's a quiz request, use fast logic
+        if any(phrase in request.question.lower() for phrase in ['quiz', 'test me', 'questions on']):
+            print("🔄 Quiz keywords detected - using fast detection")
+            try:
+                import sys
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                if current_dir not in sys.path:
+                    sys.path.insert(0, current_dir)
+                
+                from core_assistant import CoreAssistant
+                
+                # Quick quiz detection without full initialization
+                temp_assistant = CoreAssistant.__new__(CoreAssistant)
+                quiz_result = temp_assistant._detect_quiz_intent(request.question)
+                
+                if quiz_result.get('is_quiz_request', False):
+                    print("✅ Quiz request confirmed - returning configuration prompt")
+                    return QueryResponse(
+                        answer="🎯 **Quiz Mode Activated!**\n\nI'll create a personalized quiz for you. Let me set this up...\n\n**Please choose your preferences:**\n\n📝 **Quiz Type:**\n- Multiple Choice\n- Fill in the Blank  \n- Mixed (both types)\n\n📊 **Quiz Length:**\n- Short (5 questions)\n- Medium (10 questions)\n- Long (15 questions)\n\n🎯 **Difficulty:**\n- Easy\n- Medium\n- Hard\n\n🔬 **Topic Focus:**\n- Use the topic you mentioned\n- Select from available content\n- Custom topic\n\nJust reply with your choices and I'll generate your personalized quiz!",
+                        sources=["Quiz Generator"],
+                        timestamp=datetime.now().isoformat(),
+                        sections={
+                            "quiz_mode": True,
+                            "quiz_type": "quiz_config",
+                            "quiz_data": {
+                                "session_id": str(uuid.uuid4()),
+                                "awaiting_config": True,
+                                "detected_topic": quiz_result.get('parameters', {}).get('topic', ''),
+                                "available_topics": ["glycolysis", "photosynthesis", "DNA replication", "cell respiration", "mitosis", "meiosis"]
+                            }
+                        }
+                    )
+            except Exception as e:
+                print(f"⚠️ Fast quiz detection failed: {e} - proceeding with normal processing")
+        
+        # Continue with normal processing for non-quiz requests
         # Import the enhanced core assistant with quiz capabilities
         try:
             # Add current directory to path for Railway deployment
