@@ -451,17 +451,23 @@ class CanvasAIAssistant {
             
             const result = await response.json();
             
-            resultDiv.innerHTML = `
-                <div style="border-left: 4px solid #ff4757; padding-left: 12px; margin-left: 4px;">
-                    <div style="color: #ff4757; font-weight: 600; margin-bottom: 8px;">🤖 Cuco's Answer:</div>
-                    <div style="color: #333; line-height: 1.5;">${result.answer || 'No answer found'}</div>
-                    ${result.sources && result.sources.length > 0 ? `
-                        <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e9ecef; font-size: 12px; color: #6c757d;">
-                            Sources: ${result.sources.join(', ')}
-                        </div>
-                    ` : ''}
-                </div>
-            `;
+            // Check if this is an interactive quiz configuration
+            if (result.sections && result.sections.quiz_mode && result.sections.quiz_type === 'interactive_config') {
+                this.renderInteractiveQuizConfig(result, resultDiv);
+            } else {
+                // Regular response rendering
+                resultDiv.innerHTML = `
+                    <div style="border-left: 4px solid #ff4757; padding-left: 12px; margin-left: 4px;">
+                        <div style="color: #ff4757; font-weight: 600; margin-bottom: 8px;">🤖 Cuco's Answer:</div>
+                        <div style="color: #333; line-height: 1.5;">${result.answer || 'No answer found'}</div>
+                        ${result.sources && result.sources.length > 0 ? `
+                            <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e9ecef; font-size: 12px; color: #6c757d;">
+                                Sources: ${result.sources.join(', ')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
             
             questionInput.value = '';
             console.log('✅ Question answered:', result);
@@ -474,6 +480,186 @@ class CanvasAIAssistant {
                     Error: ${error.message}
                 </div>
             `;
+        }
+    }
+
+    renderInteractiveQuizConfig(result, resultDiv) {
+        const config = result.sections.quiz_data.interactive_config;
+        const sessionId = result.sections.quiz_data.session_id;
+        const detectedTopic = result.sections.quiz_data.detected_topic;
+        
+        resultDiv.innerHTML = `
+            <div style="border-left: 4px solid #ff4757; padding: 16px; margin-left: 4px; background: #f8f9fa; border-radius: 8px;">
+                <div style="color: #ff4757; font-weight: 600; margin-bottom: 16px; font-size: 18px;">
+                    🎯 Quiz Configuration
+                </div>
+                
+                <!-- Quiz Type Selection -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+                        📝 Quiz Type:
+                    </label>
+                    <div id="quiz-type-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${config.quiz_types.map(type => `
+                            <button class="quiz-option-btn" data-type="quiz_type" data-value="${type.id}" 
+                                style="padding: 8px 16px; border: 2px solid #e9ecef; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;">
+                                ${type.label}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Quiz Length Slider -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+                        📊 Quiz Length: <span id="length-display">10</span> questions
+                    </label>
+                    <input type="range" id="quiz-length-slider" min="5" max="20" step="5" value="10"
+                        style="width: 100%; height: 6px; background: #e9ecef; border-radius: 3px; outline: none;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6c757d; margin-top: 4px;">
+                        <span>5</span><span>10</span><span>15</span><span>20</span>
+                    </div>
+                </div>
+
+                <!-- Quiz Format Selection -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+                        🎴 Quiz Format:
+                    </label>
+                    <div id="quiz-format-buttons" style="display: flex; gap: 8px;">
+                        ${config.quiz_formats.map(format => `
+                            <button class="quiz-option-btn" data-type="quiz_format" data-value="${format.id}"
+                                style="padding: 8px 16px; border: 2px solid #e9ecef; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;">
+                                ${format.label}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Topic Selection -->
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+                        🔬 Topic Focus:
+                    </label>
+                    <select id="quiz-topic-select" style="width: 100%; padding: 8px 12px; border: 2px solid #e9ecef; border-radius: 6px; font-size: 14px;">
+                        ${detectedTopic ? `<option value="${detectedTopic}" selected>📍 ${detectedTopic} (detected)</option>` : ''}
+                        ${config.topics.available.map(topic => 
+                            topic !== detectedTopic ? `<option value="${topic}">${topic}</option>` : ''
+                        ).join('')}
+                        ${config.topics.custom_option ? '<option value="custom">✏️ Custom topic...</option>' : ''}
+                    </select>
+                </div>
+
+                <!-- Start Quiz Button -->
+                <button id="start-quiz-btn" 
+                    style="width: 100%; padding: 12px; background: linear-gradient(135deg, #ff4757, #ff3742); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                    🚀 Start Quiz
+                </button>
+                
+                <input type="hidden" id="quiz-session-id" value="${sessionId}">
+            </div>
+        `;
+
+        // Add event listeners for interactive elements
+        this.setupQuizConfigListeners();
+    }
+
+    setupQuizConfigListeners() {
+        // Quiz option buttons (type and format)
+        document.querySelectorAll('.quiz-option-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const button = e.target;
+                const type = button.dataset.type;
+                
+                // Remove selected state from siblings
+                document.querySelectorAll(`[data-type="${type}"]`).forEach(sibling => {
+                    sibling.style.background = 'white';
+                    sibling.style.borderColor = '#e9ecef';
+                    sibling.style.color = '#333';
+                });
+                
+                // Add selected state
+                button.style.background = '#ff4757';
+                button.style.borderColor = '#ff4757';
+                button.style.color = 'white';
+            });
+        });
+
+        // Quiz length slider
+        const lengthSlider = document.getElementById('quiz-length-slider');
+        const lengthDisplay = document.getElementById('length-display');
+        
+        lengthSlider.addEventListener('input', (e) => {
+            lengthDisplay.textContent = e.target.value;
+        });
+
+        // Start quiz button
+        document.getElementById('start-quiz-btn').addEventListener('click', () => {
+            this.startQuizWithConfig();
+        });
+
+        // Set default selections
+        document.querySelector('[data-value="mixed"]').click(); // Default quiz type
+        document.querySelector('[data-value="standard"]').click(); // Default format
+    }
+
+    startQuizWithConfig() {
+        const sessionId = document.getElementById('quiz-session-id').value;
+        const selectedType = document.querySelector('[data-type="quiz_type"][style*="rgb(255, 71, 87)"]')?.dataset.value || 'mixed';
+        const selectedFormat = document.querySelector('[data-type="quiz_format"][style*="rgb(255, 71, 87)"]')?.dataset.value || 'standard';
+        const selectedLength = document.getElementById('quiz-length-slider').value;
+        const selectedTopic = document.getElementById('quiz-topic-select').value;
+
+        // Show loading state
+        const startBtn = document.getElementById('start-quiz-btn');
+        startBtn.textContent = '🔄 Creating Quiz...';
+        startBtn.disabled = true;
+
+        // Send configuration to start quiz
+        this.sendQuizConfiguration({
+            session_id: sessionId,
+            quiz_type: selectedType,
+            quiz_format: selectedFormat,
+            quiz_length: parseInt(selectedLength),
+            topic: selectedTopic
+        });
+    }
+
+    async sendQuizConfiguration(config) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/quiz-config`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    config_input: JSON.stringify(config),
+                    available_topics: []
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Quiz configuration failed: HTTP ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            // Replace the configuration with the first quiz question
+            const resultDiv = document.querySelector('.ai-result');
+            resultDiv.innerHTML = `
+                <div style="border-left: 4px solid #ff4757; padding: 16px; margin-left: 4px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="color: #ff4757; font-weight: 600; margin-bottom: 16px;">
+                        🎯 Quiz Started!
+                    </div>
+                    <div style="color: #333; line-height: 1.5;">${result.answer || 'Quiz is starting...'}</div>
+                </div>
+            `;
+
+        } catch (error) {
+            console.error('❌ Quiz configuration failed:', error);
+            const startBtn = document.getElementById('start-quiz-btn');
+            startBtn.textContent = '❌ Error - Try Again';
+            startBtn.disabled = false;
         }
     }
 

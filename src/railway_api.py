@@ -524,20 +524,46 @@ async def query_content_fast(request: QueryRequest):
             quiz_result = temp_assistant._detect_quiz_intent(request.question)
             
             if quiz_result.get('is_quiz_request', False):
-                print("✅ Quiz request detected - returning configuration prompt")
-                # Return immediate quiz configuration response
+                print("✅ Quiz request detected - returning interactive configuration")
+                # Return immediate interactive quiz configuration response
                 return QueryResponse(
-                    answer="🎯 **Quiz Mode Activated!**\n\nI'll create a personalized quiz for you. Let me set this up...\n\n**Please choose your preferences:**\n\n📝 **Quiz Type:**\n- Multiple Choice\n- Fill in the Blank  \n- Mixed (both types)\n\n📊 **Quiz Length:**\n- Short (5 questions)\n- Medium (10 questions)\n- Long (15 questions)\n\n🎯 **Difficulty:**\n- Easy\n- Medium\n- Hard\n\n🔬 **Topic Focus:**\n- Use the topic you mentioned\n- Select from available content\n- Custom topic\n\nJust reply with your choices and I'll generate your personalized quiz!",
+                    answer="🎯 **Quiz Mode Activated!**\n\nConfiguring your personalized quiz...",
                     sources=["Quiz Generator"],
                     timestamp=datetime.now().isoformat(),
                     sections={
                         "quiz_mode": True,
-                        "quiz_type": "quiz_config",
+                        "quiz_type": "interactive_config",
                         "quiz_data": {
                             "session_id": str(uuid.uuid4()),
                             "awaiting_config": True,
                             "detected_topic": quiz_result.get('parameters', {}).get('topic', ''),
-                            "available_topics": ["glycolysis", "photosynthesis", "DNA replication", "cell respiration", "mitosis", "meiosis"]
+                            "interactive_config": {
+                                "quiz_types": [
+                                    {"id": "multiple_choice", "label": "🎯 Multiple Choice", "icon": "🎯"},
+                                    {"id": "fill_blank", "label": "✍️ Fill in the Blank", "icon": "✍️"},
+                                    {"id": "mixed", "label": "🔀 Mixed (Both)", "icon": "🔀"}
+                                ],
+                                "quiz_lengths": {
+                                    "min": 5,
+                                    "max": 20,
+                                    "step": 5,
+                                    "default": 10,
+                                    "options": [5, 10, 15, 20]
+                                },
+                                "quiz_formats": [
+                                    {"id": "standard", "label": "📝 Standard Quiz", "icon": "📝"},
+                                    {"id": "flashcards", "label": "🎴 Flashcards", "icon": "🎴"}
+                                ],
+                                "topics": {
+                                    "detected": quiz_result.get('parameters', {}).get('topic', ''),
+                                    "available": [
+                                        "glycolysis", "photosynthesis", "DNA replication", 
+                                        "cell respiration", "mitosis", "meiosis", "protein synthesis",
+                                        "enzyme function", "cell membrane transport", "genetics"
+                                    ],
+                                    "custom_option": True
+                                }
+                            }
                         }
                     }
                 )
@@ -829,19 +855,45 @@ async def query_content(request: QueryRequest):
                 quiz_result = temp_assistant._detect_quiz_intent(request.question)
                 
                 if quiz_result.get('is_quiz_request', False):
-                    print("✅ Quiz request confirmed - returning configuration prompt")
+                    print("✅ Quiz request confirmed - returning interactive configuration")
                     return QueryResponse(
-                        answer="🎯 **Quiz Mode Activated!**\n\nI'll create a personalized quiz for you. Let me set this up...\n\n**Please choose your preferences:**\n\n📝 **Quiz Type:**\n- Multiple Choice\n- Fill in the Blank  \n- Mixed (both types)\n\n📊 **Quiz Length:**\n- Short (5 questions)\n- Medium (10 questions)\n- Long (15 questions)\n\n🎯 **Difficulty:**\n- Easy\n- Medium\n- Hard\n\n🔬 **Topic Focus:**\n- Use the topic you mentioned\n- Select from available content\n- Custom topic\n\nJust reply with your choices and I'll generate your personalized quiz!",
+                        answer="🎯 **Quiz Mode Activated!**\n\nConfiguring your personalized quiz...",
                         sources=["Quiz Generator"],
                         timestamp=datetime.now().isoformat(),
                         sections={
                             "quiz_mode": True,
-                            "quiz_type": "quiz_config",
+                            "quiz_type": "interactive_config",
                             "quiz_data": {
                                 "session_id": str(uuid.uuid4()),
                                 "awaiting_config": True,
                                 "detected_topic": quiz_result.get('parameters', {}).get('topic', ''),
-                                "available_topics": ["glycolysis", "photosynthesis", "DNA replication", "cell respiration", "mitosis", "meiosis"]
+                                "interactive_config": {
+                                    "quiz_types": [
+                                        {"id": "multiple_choice", "label": "🎯 Multiple Choice", "icon": "🎯"},
+                                        {"id": "fill_blank", "label": "✍️ Fill in the Blank", "icon": "✍️"},
+                                        {"id": "mixed", "label": "🔀 Mixed (Both)", "icon": "🔀"}
+                                    ],
+                                    "quiz_lengths": {
+                                        "min": 5,
+                                        "max": 20,
+                                        "step": 5,
+                                        "default": 10,
+                                        "options": [5, 10, 15, 20]
+                                    },
+                                    "quiz_formats": [
+                                        {"id": "standard", "label": "📝 Standard Quiz", "icon": "📝"},
+                                        {"id": "flashcards", "label": "🎴 Flashcards", "icon": "🎴"}
+                                    ],
+                                    "topics": {
+                                        "detected": quiz_result.get('parameters', {}).get('topic', ''),
+                                        "available": [
+                                            "glycolysis", "photosynthesis", "DNA replication", 
+                                            "cell respiration", "mitosis", "meiosis", "protein synthesis",
+                                            "enzyme function", "cell membrane transport", "genetics"
+                                        ],
+                                        "custom_option": True
+                                    }
+                                }
                             }
                         }
                     )
