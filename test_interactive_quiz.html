@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Quiz Configuration Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .test-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .test-btn:hover {
+            background: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Interactive Quiz Configuration Test</h1>
+        <p>Test the new interactive quiz configuration interface:</p>
+        
+        <button class="test-btn" onclick="testQuizInterface()">
+            🧪 Test "quiz me on glycolysis"
+        </button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function testQuizInterface() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div>🔄 Loading...</div>';
+            
+            try {
+                const response = await fetch('https://cucov2-production.up.railway.app/query-fast', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: 'quiz me on glycolysis'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.sections && result.sections.quiz_mode && result.sections.quiz_type === 'interactive_config') {
+                    renderInteractiveQuizConfig(result, resultDiv);
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="color: #dc3545;">
+                            ❌ Expected interactive config but got: ${result.sections?.quiz_type || 'unknown'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color: #dc3545;">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function renderInteractiveQuizConfig(result, resultDiv) {
+            const config = result.sections.quiz_data.interactive_config;
+            const sessionId = result.sections.quiz_data.session_id;
+            const detectedTopic = result.sections.quiz_data.detected_topic;
+            
+            resultDiv.innerHTML = `
+                <div style="border-left: 4px solid #ff4757; padding: 16px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="color: #ff4757; font-weight: 600; margin-bottom: 16px; font-size: 18px;">
+                        🎯 Quiz Configuration
+                    </div>
+                    
+                    <!-- Quiz Type Selection -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+                            📝 Quiz Type:
+                        </label>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            ${config.quiz_types.map(type => `
+                                <button class="quiz-option-btn" data-type="quiz_type" data-value="${type.id}" 
+                                    style="padding: 8px 16px; border: 2px solid #e9ecef; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;">
+                                    ${type.label}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Quiz Length Slider -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+                            📊 Quiz Length: <span id="length-display">10</span> questions
+                        </label>
+                        <input type="range" id="quiz-length-slider" min="5" max="20" step="5" value="10"
+                            style="width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; outline: none; cursor: pointer;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6c757d; margin-top: 4px;">
+                            <span>5</span><span>10</span><span>15</span><span>20</span>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Format Selection -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+                            🎴 Quiz Format:
+                        </label>
+                        <div style="display: flex; gap: 8px;">
+                            ${config.quiz_formats.map(format => `
+                                <button class="quiz-option-btn" data-type="quiz_format" data-value="${format.id}"
+                                    style="padding: 8px 16px; border: 2px solid #e9ecef; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;">
+                                    ${format.label}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Topic Selection -->
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+                            🔬 Topic Focus:
+                        </label>
+                        <select id="quiz-topic-select" style="width: 100%; padding: 8px 12px; border: 2px solid #e9ecef; border-radius: 6px; font-size: 14px;">
+                            ${detectedTopic ? `<option value="${detectedTopic}" selected>📍 ${detectedTopic} (detected)</option>` : ''}
+                            ${config.topics.available.map(topic => 
+                                topic !== detectedTopic ? `<option value="${topic}">${topic}</option>` : ''
+                            ).join('')}
+                            ${config.topics.custom_option ? '<option value="custom">✏️ Custom topic...</option>' : ''}
+                        </select>
+                    </div>
+
+                    <!-- Start Quiz Button -->
+                    <button id="start-quiz-btn" onclick="alert('Quiz would start with selected configuration!')"
+                        style="width: 100%; padding: 12px; background: linear-gradient(135deg, #ff4757, #ff3742); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);">
+                        🚀 Start Quiz
+                    </button>
+                    
+                    <div style="margin-top: 12px; font-size: 12px; color: #6c757d; text-align: center;">
+                        Session ID: ${sessionId}
+                    </div>
+                </div>
+            `;
+
+            // Add interactive functionality
+            setupTestListeners();
+        }
+
+        function setupTestListeners() {
+            // Quiz option buttons
+            document.querySelectorAll('.quiz-option-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const button = e.target;
+                    const type = button.dataset.type;
+                    
+                    // Remove selected state from siblings
+                    document.querySelectorAll(`[data-type="${type}"]`).forEach(sibling => {
+                        sibling.style.background = 'white';
+                        sibling.style.borderColor = '#e9ecef';
+                        sibling.style.color = '#333';
+                    });
+                    
+                    // Add selected state
+                    button.style.background = '#ff4757';
+                    button.style.borderColor = '#ff4757';
+                    button.style.color = 'white';
+                    button.style.transform = 'scale(1.05)';
+                });
+            });
+
+            // Quiz length slider
+            const lengthSlider = document.getElementById('quiz-length-slider');
+            const lengthDisplay = document.getElementById('length-display');
+            
+            if (lengthSlider && lengthDisplay) {
+                lengthSlider.addEventListener('input', (e) => {
+                    lengthDisplay.textContent = e.target.value;
+                });
+            }
+
+            // Set default selections with animation
+            setTimeout(() => {
+                const defaultType = document.querySelector('[data-value="mixed"]');
+                const defaultFormat = document.querySelector('[data-value="standard"]');
+                if (defaultType) defaultType.click();
+                if (defaultFormat) defaultFormat.click();
+            }, 100);
+        }
+    </script>
+</body>
+</html>

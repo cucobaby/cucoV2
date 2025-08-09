@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Canvas AI Assistant",
-  "version": "3.5.4",
-  "description": "AI-powered educational assistant for Canvas LMS - Enhanced UI & Educational Responses v3.5.1",
+  "version": "3.5.5",
+  "description": "AI-powered educational assistant for Canvas LMS - enhanced quiz at last v3.5.1",
   "permissions": [
     "activeTab",
     "storage",

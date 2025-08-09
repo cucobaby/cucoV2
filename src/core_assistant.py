@@ -569,7 +569,78 @@ Please provide a clear, educational answer based on this course content."""
     def _parse_quiz_configuration(self, config_input: str, available_topics: List[str]) -> Dict[str, Any]:
         """Parse user's configuration input into quiz parameters"""
         from quiz_generator import QuizType, QuizFormat
+        import json
         
+        # Check if input is JSON (new format) or string (legacy format)
+        try:
+            config_data = json.loads(config_input)
+            print(f"📋 Parsing new JSON config format: {config_data}")
+            
+            # Handle new structured format
+            if isinstance(config_data, dict):
+                config = {
+                    'topic': None,
+                    'quiz_type': QuizType.MIXED,
+                    'quiz_format': QuizFormat.STANDARD,
+                    'length': config_data.get('quiz_length', 10),
+                    'difficulty': 'medium'
+                }
+                
+                # Parse quiz type
+                quiz_type = config_data.get('quiz_type', 'mixed')
+                if quiz_type == 'multiple_choice':
+                    config['quiz_type'] = QuizType.MULTIPLE_CHOICE
+                elif quiz_type == 'fill_in_blank':
+                    config['quiz_type'] = QuizType.FILL_IN_BLANK
+                else:
+                    config['quiz_type'] = QuizType.MIXED
+                
+                # Parse quiz format
+                quiz_format = config_data.get('quiz_format', 'standard')
+                if quiz_format == 'flashcards':
+                    config['quiz_format'] = QuizFormat.FLASHCARD
+                else:
+                    config['quiz_format'] = QuizFormat.STANDARD
+                
+                # Parse topics
+                topics = config_data.get('topics', [])
+                selected_topics = []
+                
+                for topic_item in topics:
+                    if isinstance(topic_item, dict):
+                        if topic_item.get('type') == 'detected':
+                            selected_topics.append(topic_item.get('value', ''))
+                        elif topic_item.get('type') == 'knowledge_base':
+                            # For knowledge base files, we'll add them as additional context
+                            kb_files = topic_item.get('files', [])
+                            for file_info in kb_files:
+                                selected_topics.append(f"KB: {file_info.get('title', '')}")
+                
+                # Use the first topic or original question as primary topic
+                if selected_topics:
+                    config['topic'] = selected_topics[0]
+                elif config_data.get('original_question'):
+                    # Extract topic from original question
+                    original_q = config_data['original_question']
+                    # Simple extraction for questions like "quiz me on glycolysis"
+                    import re
+                    topic_match = re.search(r'quiz\s+me\s+on\s+(.+)', original_q, re.IGNORECASE)
+                    if topic_match:
+                        config['topic'] = topic_match.group(1).strip()
+                    else:
+                        config['topic'] = "General Topic"
+                else:
+                    config['topic'] = "General Topic"
+                
+                print(f"✅ Parsed new format config: {config}")
+                return config
+                
+        except (json.JSONDecodeError, TypeError):
+            # Fall back to legacy string parsing
+            print(f"📋 Parsing legacy string format: {config_input}")
+            pass
+        
+        # Legacy string parsing (existing code)
         config_lower = config_input.lower()
         
         # Default configuration
